@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eval Review</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600&family=Lora:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
+  <style>
+    :root {
+      --bg: #faf9f5;
+      --surface: #ffffff;
+      --border: #e8e6dc;
+      --text: #141413;
+      --text-muted: #b0aea5;
+      --accent: #d97757;
+      --accent-hover: #c4613f;
+      --green: #788c5d;
+      --green-bg: #eef2e8;
+      --red: #c44;
+      --red-bg: #fceaea;
+      --header-bg: #141413;
+      --header-text: #faf9f5;
+      --radius: 6px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Lora', Georgia, serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ---- Header ---- */
+    .header {
+      background: var(--header-bg);
+      color: var(--header-text);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .header h1 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    .header .instructions {
+      font-size: 0.8rem;
+      opacity: 0.7;
+      margin-top: 0.25rem;
+    }
+    .header .progress {
+      font-size: 0.875rem;
+      opacity: 0.8;
+      text-align: right;
+    }
+
+    /* ---- Main content ---- */
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    /* ---- Sections ---- */
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      flex-shrink: 0;
+    }
+    .section-header {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.75rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+    }
+    .section-body {
+      padding: 1rem;
+    }
+
+    /* ---- Config badge ---- */
+    .config-badge {
+      display: inline-block;
+      padding: 0.2rem 0.625rem;
+      border-radius: 9999px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-left: 0.75rem;
+      vertical-align: middle;
+    }
+    .config-badge.config-primary {
+      background: rgba(33, 150, 243, 0.12);
+      color: #1976d2;
+    }
+    .config-badge.config-baseline {
+      background: rgba(255, 193, 7, 0.15);
+      color: #f57f17;
+    }
+
+    /* ---- Prompt ---- */
+    .prompt-text {
+      white-space: pre-wrap;
+      font-size: 0.9375rem;
+      line-height: 1.6;
+    }
+
+    /* ---- Outputs ---- */
+    .output-file {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .output-file + .output-file {
+      margin-top: 1rem;
+    }
+    .output-file-header {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .output-file-header .dl-btn {
+      font-size: 0.7rem;
+      color: var(--accent);
+      text-decoration: none;
+      cursor: pointer;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-weight: 500;
+      opacity: 0.8;
+    }
+    .output-file-header .dl-btn:hover {
+      opacity: 1;
+      text-decoration: underline;
+    }
+    .output-file-content {
+      padding: 0.75rem;
+      overflow-x: auto;
+    }
+    .output-file-content pre {
+      font-size: 0.8125rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+    }
+    .output-file-content img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 4px;
+    }
+    .output-file-content iframe {
+      width: 100%;
+      height: 600px;
+      border: none;
+    }
+    .output-file-content table {
+      border-collapse: collapse;
+      font-size: 0.8125rem;
+      width: 100%;
+    }
+    .output-file-content table td,
+    .output-file-content table th {
+      border: 1px solid var(--border);
+      padding: 0.375rem 0.5rem;
+      text-align: left;
+    }
+    .output-file-content table th {
+      background: var(--bg);
+      font-weight: 600;
+    }
+    .output-file-content .download-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 0.875rem;
+      cursor: pointer;
+    }
+    .output-file-content .download-link:hover {
+      background: var(--border);
+    }
+    .empty-state {
+      color: var(--text-muted);
+      font-style: italic;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    /* ---- Feedback ---- */
+    .prev-feedback {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.625rem 0.75rem;
+      margin-top: 0.75rem;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .prev-feedback-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.25rem;
+      color: var(--text-muted);
+    }
+    .feedback-textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 0.9375rem;
+      line-height: 1.5;
+      resize: vertical;
+      color: var(--text);
+    }
+    .feedback-textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    .feedback-status {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+      min-height: 1.1em;
+    }
+
+    /* ---- Grades (collapsible) ---- */
+    .grades-toggle {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .grades-toggle:hover {
+      color: var(--accent);
+    }
+    .grades-toggle .arrow {
+      margin-right: 0.5rem;
+      transition: transform 0.15s;
+      font-size: 0.75rem;
+    }
+    .grades-toggle .arrow.open {
+      transform: rotate(90deg);
+    }
+    .grades-content {
+      display: none;
+      margin-top: 0.75rem;
+    }
+    .grades-content.open {
+      display: block;
+    }
+    .grades-summary {
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .grade-badge {
+      display: inline-block;
+      padding: 0.125rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .grade-pass { background: var(--green-bg); color: var(--green); }
+    .grade-fail { background: var(--red-bg); color: var(--red); }
+    .assertion-list {
+      list-style: none;
+    }
+    .assertion-item {
+      padding: 0.625rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.8125rem;
+    }
+    .assertion-item:last-child { border-bottom: none; }
+    .assertion-status {
+      font-weight: 600;
+      margin-right: 0.5rem;
+    }
+    .assertion-status.pass { color: var(--green); }
+    .assertion-status.fail { color: var(--red); }
+    .assertion-evidence {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      margin-top: 0.25rem;
+      padding-left: 1.5rem;
+    }
+
+    /* ---- View tabs ---- */
+    .view-tabs {
+      display: flex;
+      gap: 0;
+      padding: 0 2rem;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .view-tab {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.625rem 1.25rem;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .view-tab:hover { color: var(--text); }
+    .view-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .view-panel { display: none; }
+    .view-panel.active { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+
+    /* ---- Benchmark view ---- */
+    .benchmark-view {
+      padding: 1.5rem 2rem;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .benchmark-table {
+      border-collapse: collapse;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.8125rem;
+      width: 100%;
+      margin-bottom: 1.5rem;
+    }
+    .benchmark-table th, .benchmark-table td {
+      padding: 0.625rem 0.75rem;
+      text-align: left;
+      border: 1px solid var(--border);
+    }
+    .benchmark-table th {
+      font-family: 'Poppins', sans-serif;
+      background: var(--header-bg);
+      color: var(--header-text);
+      font-weight: 500;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .benchmark-table tr:hover { background: var(--bg); }
+    .benchmark-table tr.benchmark-row-with { background: rgba(33, 150, 243, 0.06); }
+    .benchmark-table tr.benchmark-row-without { background: rgba(255, 193, 7, 0.06); }
+    .benchmark-table tr.benchmark-row-with:hover { background: rgba(33, 150, 243, 0.12); }
+    .benchmark-table tr.benchmark-row-without:hover { background: rgba(255, 193, 7, 0.12); }
+    .benchmark-table tr.benchmark-row-avg { font-weight: 600; border-top: 2px solid var(--border); }
+    .benchmark-table tr.benchmark-row-avg.benchmark-row-with { background: rgba(33, 150, 243, 0.12); }
+    .benchmark-table tr.benchmark-row-avg.benchmark-row-without { background: rgba(255, 193, 7, 0.12); }
+    .benchmark-delta-positive { color: var(--green); font-weight: 600; }
+    .benchmark-delta-negative { color: var(--red); font-weight: 600; }
+    .benchmark-notes {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+    }
+    .benchmark-notes h3 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+    }
+    .benchmark-notes ul {
+      list-style: disc;
+      padding-left: 1.25rem;
+    }
+    .benchmark-notes li {
+      font-size: 0.8125rem;
+      line-height: 1.6;
+      margin-bottom: 0.375rem;
+    }
+    .benchmark-empty {
+      color: var(--text-muted);
+      font-style: italic;
+      text-align: center;
+      padding: 3rem;
+    }
+
+    /* ---- Navigation ---- */
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+    .nav-btn {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.5rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text);
+      transition: all 0.15s;
+    }
+    .nav-btn:hover:not(:disabled) {
+      background: var(--bg);
+      border-color: var(--text-muted);
+    }
+    .nav-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .done-btn {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.5rem 1.5rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    .done-btn:hover {
+      background: var(--bg);
+      border-color: var(--text-muted);
+    }
+    .done-btn.ready {
+      border: none;
+      background: var(--accent);
+      color: white;
+      font-weight: 600;
+    }
+    .done-btn.ready:hover {
+      background: var(--accent-hover);
+    }
+    /* ---- Done overlay ---- */
+    .done-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+    }
+    .done-overlay.visible {
+      display: flex;
+    }
+    .done-card {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 2rem 3rem;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 500px;
+    }
+    .done-card h2 {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .done-card p {
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
+    }
+    .done-card .btn-row {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+    .done-card button {
+      padding: 0.5rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 0.875rem;
+    }
+    .done-card button:hover {
+      background: var(--bg);
+    }
+    /* ---- Toast ---- */
+    .toast {
+      position: fixed;
+      bottom: 5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--header-bg);
+      color: var(--header-text);
+      padding: 0.625rem 1.25rem;
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      z-index: 200;
+    }
+    .toast.visible {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" style="height:100vh; display:flex; flex-direction:column;">
+    <div class="header">
+      <div>
+        <h1>Eval Review: <span id="skill-name"></span></h1>
+        <div class="instructions">Review each output and leave feedback below. Navigate with arrow keys or buttons. When done, copy feedback and paste into Claude Code.</div>
+      </div>
+      <div class="progress" id="progress"></div>
+    </div>
+
+    <!-- View tabs (only shown when benchmark data exists) -->
+    <div class="view-tabs" id="view-tabs" style="display:none;">
+      <button class="view-tab active" onclick="switchView('outputs')">Outputs</button>
+      <button class="view-tab" onclick="switchView('benchmark')">Benchmark</button>
+    </div>
+
+    <!-- Outputs panel (qualitative review) -->
+    <div class="view-panel active" id="panel-outputs">
+    <div class="main">
+      <!-- Prompt -->
+      <div class="section">
+        <div class="section-header">Prompt <span class="config-badge" id="config-badge" style="display:none;"></span></div>
+        <div class="section-body">
+          <div class="prompt-text" id="prompt-text"></div>
+        </div>
+      </div>
+
+      <!-- Outputs -->
+      <div class="section">
+        <div class="section-header">Output</div>
+        <div class="section-body" id="outputs-body">
+          <div class="empty-state">No output files found</div>
+        </div>
+      </div>
+
+      <!-- Previous Output (collapsible) -->
+      <div class="section" id="prev-outputs-section" style="display:none;">
+        <div class="section-header">
+          <div class="grades-toggle" onclick="togglePrevOutputs()">
+            <span class="arrow" id="prev-outputs-arrow">&#9654;</span>
+            Previous Output
+          </div>
+        </div>
+        <div class="grades-content" id="prev-outputs-content"></div>
+      </div>
+
+      <!-- Grades (collapsible) -->
+      <div class="section" id="grades-section" style="display:none;">
+        <div class="section-header">
+          <div class="grades-toggle" onclick="toggleGrades()">
+            <span class="arrow" id="grades-arrow">&#9654;</span>
+            Formal Grades
+          </div>
+        </div>
+        <div class="grades-content" id="grades-content"></div>
+      </div>
+
+      <!-- Feedback -->
+      <div class="section">
+        <div class="section-header">Your Feedback</div>
+        <div class="section-body">
+          <textarea
+            class="feedback-textarea"
+            id="feedback"
+            placeholder="What do you think of this output? Any issues, suggestions, or things that look great?"
+          ></textarea>
+          <div class="feedback-status" id="feedback-status"></div>
+          <div class="prev-feedback" id="prev-feedback" style="display:none;">
+            <div class="prev-feedback-label">Previous feedback</div>
+            <div id="prev-feedback-text"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav" id="outputs-nav">
+      <button class="nav-btn" id="prev-btn" onclick="navigate(-1)">&#8592; Previous</button>
+      <button class="done-btn" id="done-btn" onclick="showDoneDialog()">Submit All Reviews</button>
+      <button class="nav-btn" id="next-btn" onclick="navigate(1)">Next &#8594;</button>
+    </div>
+    </div><!-- end panel-outputs -->
+
+    <!-- Benchmark panel (quantitative stats) -->
+    <div class="view-panel" id="panel-benchmark">
+      <div class="benchmark-view" id="benchmark-content">
+        <div class="benchmark-empty">No benchmark data available. Run a benchmark to see quantitative results here.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Done overlay -->
+  <div class="done-overlay" id="done-overlay">
+    <div class="done-card">
+      <h2>Review Complete</h2>
+      <p>Your feedback has been saved. Go back to your Claude Code session and tell Claude you're done reviewing.</p>
+      <div class="btn-row">
+        <button onclick="closeDoneDialog()">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ---- Embedded data (injected by generate_review.py) ----
+    const EMBEDDED_DATA = {"skill_name": "canvas-lms-api", "runs": [{"id": "eval-list-active-courses-with_skill", "prompt": "I have a Canvas API personal access token and my school's Canvas is at https://ucsc.instructure.com. Can you write me a Python script that lists all my active courses (just id and name) using my token from an environment variable?", "eval_id": 0, "outputs": [{"name": "canvas_client.py", "type": "text", "content": "\"\"\"\nMinimal Canvas LMS API client.\n\nHandles the three things every non-trivial Canvas script needs and gets wrong at least\nonce: Bearer auth, Link-header pagination, and backing off on rate-limit responses.\nOnly dependency is `requests` (pip install requests).\n\nUsage:\n    import os\n    from canvas_client import CanvasClient\n\n    client = CanvasClient(\n        base_url=os.environ[\"CANVAS_BASE_URL\"],     # e.g. \"https://ucsc.instructure.com\"\n        token=os.environ[\"CANVAS_API_TOKEN\"],\n    )\n\n    courses = client.get_all_pages(\"/courses\", params={\"enrollment_state\": \"active\"})\n    for c in courses:\n        print(c[\"id\"], c[\"name\"])\n\"\"\"\n\nfrom __future__ import annotations\n\nimport time\nfrom typing import Any\nfrom urllib.parse import urljoin\n\nimport requests\n\n\nclass CanvasAPIError(RuntimeError):\n    \"\"\"Raised for non-2xx Canvas responses that aren't a retryable rate limit.\"\"\"\n\n    def __init__(self, status_code: int, url: str, body: str):\n        self.status_code = status_code\n        self.url = url\n        self.body = body\n        super().__init__(f\"Canvas API {status_code} for {url}: {body[:500]}\")\n\n\nclass CanvasClient:\n    def __init__(\n        self,\n        base_url: str,\n        token: str,\n        per_page: int = 100,\n        timeout: float = 30.0,\n        max_rate_limit_retries: int = 3,\n    ):\n        \"\"\"\n        base_url: the school's Canvas domain, e.g. \"https://ucsc.instructure.com\".\n                  No trailing slash needed; /api/v1 is added automatically.\n        token: a personal access token (see SKILL.md's Authentication section).\n        per_page: page size requested on list endpoints. 100 is a safe default across\n                  most Canvas instances; some allow more.\n        max_rate_limit_retries: how many times to back off and retry on a 403 that is\n                  actually a rate-limit response (see _is_rate_limited below), before\n                  giving up and raising.\n        \"\"\"\n        self.base_url = base_url.rstrip(\"/\")\n        self.per_page = per_page\n        self.timeout = timeout\n        self.max_rate_limit_retries = max_rate_limit_retries\n        self._session = requests.Session()\n        self._session.headers.update({\"Authorization\": f\"Bearer {token}\"})\n\n    def _full_url(self, path_or_url: str) -> str:\n        # Accept both a path like \"/courses\" and an absolute URL (as returned in a\n        # Link header) \u2014 Link URLs must be followed as-is, never reconstructed.\n        if path_or_url.startswith(\"http://\") or path_or_url.startswith(\"https://\"):\n            return path_or_url\n        path = path_or_url if path_or_url.startswith(\"/\") else f\"/{path_or_url}\"\n        return urljoin(self.base_url + \"/\", f\"api/v1{path}\".lstrip(\"/\"))\n\n    @staticmethod\n    def _is_rate_limited(resp: requests.Response) -> bool:\n        # Canvas signals throttling with 403 or 429 and a body mentioning the rate\n        # limit; a plain permissions 403 has a different message. Check both status\n        # codes since Canvas's docs and real-world behavior disagree on which is used.\n        if resp.status_code not in (403, 429):\n            return False\n        return \"rate limit\" in resp.text.lower()\n\n    def _request(self, method: str, path_or_url: str, **kwargs) -> requests.Response:\n        url = self._full_url(path_or_url)\n        attempt = 0\n        while True:\n            resp = self._session.request(method, url, timeout=self.timeout, **kwargs)\n            if self._is_rate_limited(resp) and attempt < self.max_rate_limit_retries:\n                attempt += 1\n                time.sleep(2**attempt)  # brief exponential backoff\n                continue\n            if not resp.ok:\n                raise CanvasAPIError(resp.status_code, url, resp.text)\n            return resp\n\n    def get(self, path: str, params: dict[str, Any] | None = None) -> Any:\n        \"\"\"A single request \u2014 use for 'get one object' endpoints. For list endpoints,\n        prefer get_all_pages so you don't silently get only the first page.\"\"\"\n        resp = self._request(\n            \"GET\", path, params={**(params or {}), \"per_page\": self.per_page}\n        )\n        return resp.json()\n\n    def get_all_pages(self, path: str, params: dict[str, Any] | None = None) -> list:\n        \"\"\"Follow the Link header's rel=\"next\" until exhausted, returning every item.\n        Use for any endpoint that returns a JSON array (courses, assignments, etc.).\"\"\"\n        results: list = []\n        next_url: str | None = self._full_url(path)\n        first = True\n        while next_url:\n            resp = self._request(\n                \"GET\",\n                next_url,\n                params={**(params or {}), \"per_page\": self.per_page} if first else None,\n            )\n            first = False\n            page = resp.json()\n            if isinstance(page, list):\n                results.extend(page)\n            else:\n                # Some endpoints (rare) wrap the array in an object; be defensive.\n                results.append(page)\n            next_url = resp.links.get(\"next\", {}).get(\"url\")\n        return results\n\n    def post(self, path: str, data: dict[str, Any] | None = None) -> Any:\n        resp = self._request(\"POST\", path, data=data)\n        return resp.json()\n\n    def put(self, path: str, data: dict[str, Any] | None = None) -> Any:\n        resp = self._request(\"PUT\", path, data=data)\n        return resp.json()\n\n    def delete(self, path: str) -> Any:\n        resp = self._request(\"DELETE\", path)\n        return resp.json() if resp.text else None\n\n    # --- Convenience wrappers for common \"self\" / student read tasks -------------\n\n    def list_my_courses(self, enrollment_state: str = \"active\", **extra_params) -> list:\n        params = {\"enrollment_state\": enrollment_state, **extra_params}\n        return self.get_all_pages(\"/courses\", params=params)\n\n    def list_assignments(self, course_id: int | str, **extra_params) -> list:\n        params = {\"include[]\": \"submission\", \"order_by\": \"due_at\", **extra_params}\n        return self.get_all_pages(f\"/courses/{course_id}/assignments\", params=params)\n\n    def get_my_submission(self, course_id: int | str, assignment_id: int | str) -> Any:\n        return self.get(\n            f\"/courses/{course_id}/assignments/{assignment_id}/submissions/self\"\n        )\n\n    def list_my_grades(self) -> list:\n        \"\"\"One enrollment object per active course; each has a `grades` dict with\n        current_score / current_grade / final_score / final_grade.\"\"\"\n        return self.get_all_pages(\n            \"/users/self/enrollments\",\n            params={\"type[]\": \"StudentEnrollment\", \"state[]\": \"active\"},\n        )\n\n    def upcoming_items(self, start_date: str, end_date: str, **extra_params) -> list:\n        \"\"\"start_date/end_date as 'YYYY-MM-DD' or full ISO8601. Returns planner items\n        (assignments, quizzes, discussions, etc.) across every course at once.\"\"\"\n        params = {\"start_date\": start_date, \"end_date\": end_date, **extra_params}\n        return self.get_all_pages(\"/planner/items\", params=params)\n\n    def list_announcements(self, course_id: int | str) -> list:\n        return self.get_all_pages(\n            f\"/courses/{course_id}/discussion_topics\",\n            params={\"only_announcements\": True},\n        )\n\n    def list_files(self, course_id: int | str) -> list:\n        return self.get_all_pages(f\"/courses/{course_id}/files\")\n"}, {"name": "list_courses.py", "type": "text", "content": "#!/usr/bin/env python3\n\"\"\"\nList the current user's active Canvas courses (id and name only).\n\nSetup:\n    pip install requests\n    export CANVAS_API_TOKEN=\"<your Canvas personal access token>\"\n\nThe token is read from the CANVAS_API_TOKEN environment variable \u2014 never hardcode\nit in this file. Generate one at <your Canvas base URL>/profile/settings ->\n\"Approved Integrations\" -> \"+ New Access Token\".\n\nUsage:\n    python3 list_courses.py\n\"\"\"\n\nfrom __future__ import annotations\n\nimport os\nimport sys\n\nfrom canvas_client import CanvasClient, CanvasAPIError\n\n# Your school's Canvas domain.\nCANVAS_BASE_URL = \"https://ucsc.instructure.com\"\n\n\ndef main() -> int:\n    token = os.environ.get(\"CANVAS_API_TOKEN\")\n    if not token:\n        print(\n            \"Error: CANVAS_API_TOKEN environment variable is not set.\\n\"\n            \"Set it with: export CANVAS_API_TOKEN='<your Canvas access token>'\",\n            file=sys.stderr,\n        )\n        return 1\n\n    client = CanvasClient(base_url=CANVAS_BASE_URL, token=token)\n\n    try:\n        courses = client.list_my_courses(enrollment_state=\"active\")\n    except CanvasAPIError as e:\n        print(f\"Canvas API request failed: {e}\", file=sys.stderr)\n        return 1\n\n    if not courses:\n        print(\"No active courses found.\")\n        return 0\n\n    for course in courses:\n        course_id = course.get(\"id\")\n        # Some course objects can lack a \"name\" (e.g. restricted access); fall back\n        # to course_code so the listing doesn't silently drop a row.\n        name = course.get(\"name\") or course.get(\"course_code\") or \"(unnamed course)\"\n        print(f\"{course_id}\\t{name}\")\n\n    return 0\n\n\nif __name__ == \"__main__\":\n    raise SystemExit(main())\n"}], "grading": {"expectations": [{"text": "Sends the token as an 'Authorization: Bearer <token>' header, not as an access_token query/body param", "passed": true, "evidence": "Found 'Authorization ... Bearer' header construction."}, {"text": "Reads the token from an environment variable rather than hardcoding a literal token string", "passed": true, "evidence": "Token is read via os.environ[...]/os.environ.get(...)."}, {"text": "Calls the /courses (or /api/v1/courses) list endpoint with an enrollment_state=active filter", "passed": true, "evidence": "enrollment_state=active passed as a request param."}, {"text": "Implements pagination that follows the Link/next relation (or equivalent loop) rather than only reading a single page/response", "passed": true, "evidence": "Pagination loop follows Link header's rel=next (directly or via get_all_pages)."}, {"text": "Does not print or log the raw token value anywhere", "passed": true, "evidence": "The only print() near the word 'token' is a static usage-help string ('export CANVAS_API_TOKEN=<your Canvas access token>'), not an interpolation of the actual token variable value."}, {"text": "Includes retry/backoff handling for a Canvas rate-limit response (403/429 mentioning rate limit) rather than treating it as a hard failure", "passed": true, "evidence": "Rate-limit-aware retry/backoff logic present (via bundled canvas_client.py or inline)."}], "summary": {"passed": 6, "failed": 0, "total": 6, "pass_rate": 1.0}}}, {"id": "eval-list-active-courses-without_skill", "prompt": "I have a Canvas API personal access token and my school's Canvas is at https://ucsc.instructure.com. Can you write me a Python script that lists all my active courses (just id and name) using my token from an environment variable?", "eval_id": 0, "outputs": [{"name": "list_courses.py", "type": "text", "content": "#!/usr/bin/env python3\n\"\"\"\nList all active Canvas courses (id and name) for the authenticated user.\n\nRequires:\n    pip install requests\n\nSetup:\n    export CANVAS_API_TOKEN=\"your-personal-access-token\"\n\nUsage:\n    python3 list_courses.py\n\"\"\"\n\nimport os\nimport sys\n\nimport requests\n\nCANVAS_BASE_URL = \"https://ucsc.instructure.com\"\nCOURSES_ENDPOINT = f\"{CANVAS_BASE_URL}/api/v1/courses\"\n\n\ndef get_api_token() -> str:\n    token = os.environ.get(\"CANVAS_API_TOKEN\")\n    if not token:\n        sys.exit(\n            \"Error: CANVAS_API_TOKEN environment variable is not set.\\n\"\n            \"Set it with: export CANVAS_API_TOKEN='your-personal-access-token'\"\n        )\n    return token\n\n\ndef get_active_courses(token: str):\n    \"\"\"\n    Fetch all active courses for the current user, following pagination.\n    Returns a list of dicts with 'id' and 'name'.\n    \"\"\"\n    headers = {\"Authorization\": f\"Bearer {token}\"}\n    params = {\n        \"enrollment_state\": \"active\",  # only courses with an active enrollment\n        \"state[]\": \"available\",        # only currently published/active courses\n        \"per_page\": 100,\n    }\n\n    courses = []\n    url = COURSES_ENDPOINT\n\n    while url:\n        response = requests.get(url, headers=headers, params=params)\n\n        if response.status_code == 401:\n            sys.exit(\"Error: Unauthorized. Check that your CANVAS_API_TOKEN is valid.\")\n        response.raise_for_status()\n\n        for course in response.json():\n            # Some course objects can be missing a name (e.g. restricted access);\n            # skip anything that isn't a normal course record.\n            if \"id\" in course and \"name\" in course:\n                courses.append({\"id\": course[\"id\"], \"name\": course[\"name\"]})\n\n        # Handle pagination via the Link header (Canvas uses standard rel=\"next\")\n        url = response.links.get(\"next\", {}).get(\"url\")\n        params = None  # subsequent 'next' URLs already include query params\n\n    return courses\n\n\ndef main():\n    token = get_api_token()\n    courses = get_active_courses(token)\n\n    if not courses:\n        print(\"No active courses found.\")\n        return\n\n    print(f\"Active courses ({len(courses)}):\\n\")\n    for course in courses:\n        print(f\"{course['id']}: {course['name']}\")\n\n\nif __name__ == \"__main__\":\n    main()\n"}], "grading": {"expectations": [{"text": "Sends the token as an 'Authorization: Bearer <token>' header, not as an access_token query/body param", "passed": true, "evidence": "Found 'Authorization ... Bearer' header construction."}, {"text": "Reads the token from an environment variable rather than hardcoding a literal token string", "passed": true, "evidence": "Token is read via os.environ[...]/os.environ.get(...)."}, {"text": "Calls the /courses (or /api/v1/courses) list endpoint with an enrollment_state=active filter", "passed": true, "evidence": "enrollment_state=active passed as a request param."}, {"text": "Implements pagination that follows the Link/next relation (or equivalent loop) rather than only reading a single page/response", "passed": true, "evidence": "Pagination loop follows Link header's rel=next (directly or via get_all_pages)."}, {"text": "Does not print or log the raw token value anywhere", "passed": true, "evidence": "The only print() near the word 'token' is a static usage-help string ('export CANVAS_API_TOKEN=<your Canvas access token>'), not an interpolation of the actual token variable value."}, {"text": "Includes retry/backoff handling for a Canvas rate-limit response (403/429 mentioning rate limit) rather than treating it as a hard failure", "passed": false, "evidence": "No rate-limit retry/backoff logic found \u2014 a 403/429 rate-limit response would be treated as a hard failure."}], "summary": {"passed": 5, "failed": 1, "total": 6, "pass_rate": 0.8333}}}, {"id": "eval-upcoming-week-across-courses-with_skill", "prompt": "Write a Python script that shows me everything due in the next 7 days across ALL my Canvas classes at once \u2014 I don't want to loop through each course separately if there's a better way. My token and base URL are in CANVAS_API_TOKEN and CANVAS_BASE_URL env vars.", "eval_id": 1, "outputs": [{"name": "canvas_client.py", "type": "text", "content": "\"\"\"\nMinimal Canvas LMS API client.\n\nHandles the three things every non-trivial Canvas script needs and gets wrong at least\nonce: Bearer auth, Link-header pagination, and backing off on rate-limit responses.\nOnly dependency is `requests` (pip install requests).\n\nUsage:\n    import os\n    from canvas_client import CanvasClient\n\n    client = CanvasClient(\n        base_url=os.environ[\"CANVAS_BASE_URL\"],     # e.g. \"https://ucsc.instructure.com\"\n        token=os.environ[\"CANVAS_API_TOKEN\"],\n    )\n\n    courses = client.get_all_pages(\"/courses\", params={\"enrollment_state\": \"active\"})\n    for c in courses:\n        print(c[\"id\"], c[\"name\"])\n\"\"\"\n\nfrom __future__ import annotations\n\nimport time\nfrom typing import Any\nfrom urllib.parse import urljoin\n\nimport requests\n\n\nclass CanvasAPIError(RuntimeError):\n    \"\"\"Raised for non-2xx Canvas responses that aren't a retryable rate limit.\"\"\"\n\n    def __init__(self, status_code: int, url: str, body: str):\n        self.status_code = status_code\n        self.url = url\n        self.body = body\n        super().__init__(f\"Canvas API {status_code} for {url}: {body[:500]}\")\n\n\nclass CanvasClient:\n    def __init__(\n        self,\n        base_url: str,\n        token: str,\n        per_page: int = 100,\n        timeout: float = 30.0,\n        max_rate_limit_retries: int = 3,\n    ):\n        \"\"\"\n        base_url: the school's Canvas domain, e.g. \"https://ucsc.instructure.com\".\n                  No trailing slash needed; /api/v1 is added automatically.\n        token: a personal access token (see SKILL.md's Authentication section).\n        per_page: page size requested on list endpoints. 100 is a safe default across\n                  most Canvas instances; some allow more.\n        max_rate_limit_retries: how many times to back off and retry on a 403 that is\n                  actually a rate-limit response (see _is_rate_limited below), before\n                  giving up and raising.\n        \"\"\"\n        self.base_url = base_url.rstrip(\"/\")\n        self.per_page = per_page\n        self.timeout = timeout\n        self.max_rate_limit_retries = max_rate_limit_retries\n        self._session = requests.Session()\n        self._session.headers.update({\"Authorization\": f\"Bearer {token}\"})\n\n    def _full_url(self, path_or_url: str) -> str:\n        # Accept both a path like \"/courses\" and an absolute URL (as returned in a\n        # Link header) \u2014 Link URLs must be followed as-is, never reconstructed.\n        if path_or_url.startswith(\"http://\") or path_or_url.startswith(\"https://\"):\n            return path_or_url\n        path = path_or_url if path_or_url.startswith(\"/\") else f\"/{path_or_url}\"\n        return urljoin(self.base_url + \"/\", f\"api/v1{path}\".lstrip(\"/\"))\n\n    @staticmethod\n    def _is_rate_limited(resp: requests.Response) -> bool:\n        # Canvas signals throttling with 403 or 429 and a body mentioning the rate\n        # limit; a plain permissions 403 has a different message. Check both status\n        # codes since Canvas's docs and real-world behavior disagree on which is used.\n        if resp.status_code not in (403, 429):\n            return False\n        return \"rate limit\" in resp.text.lower()\n\n    def _request(self, method: str, path_or_url: str, **kwargs) -> requests.Response:\n        url = self._full_url(path_or_url)\n        attempt = 0\n        while True:\n            resp = self._session.request(method, url, timeout=self.timeout, **kwargs)\n            if self._is_rate_limited(resp) and attempt < self.max_rate_limit_retries:\n                attempt += 1\n                time.sleep(2**attempt)  # brief exponential backoff\n                continue\n            if not resp.ok:\n                raise CanvasAPIError(resp.status_code, url, resp.text)\n            return resp\n\n    def get(self, path: str, params: dict[str, Any] | None = None) -> Any:\n        \"\"\"A single request \u2014 use for 'get one object' endpoints. For list endpoints,\n        prefer get_all_pages so you don't silently get only the first page.\"\"\"\n        resp = self._request(\n            \"GET\", path, params={**(params or {}), \"per_page\": self.per_page}\n        )\n        return resp.json()\n\n    def get_all_pages(self, path: str, params: dict[str, Any] | None = None) -> list:\n        \"\"\"Follow the Link header's rel=\"next\" until exhausted, returning every item.\n        Use for any endpoint that returns a JSON array (courses, assignments, etc.).\"\"\"\n        results: list = []\n        next_url: str | None = self._full_url(path)\n        first = True\n        while next_url:\n            resp = self._request(\n                \"GET\",\n                next_url,\n                params={**(params or {}), \"per_page\": self.per_page} if first else None,\n            )\n            first = False\n            page = resp.json()\n            if isinstance(page, list):\n                results.extend(page)\n            else:\n                # Some endpoints (rare) wrap the array in an object; be defensive.\n                results.append(page)\n            next_url = resp.links.get(\"next\", {}).get(\"url\")\n        return results\n\n    def post(self, path: str, data: dict[str, Any] | None = None) -> Any:\n        resp = self._request(\"POST\", path, data=data)\n        return resp.json()\n\n    def put(self, path: str, data: dict[str, Any] | None = None) -> Any:\n        resp = self._request(\"PUT\", path, data=data)\n        return resp.json()\n\n    def delete(self, path: str) -> Any:\n        resp = self._request(\"DELETE\", path)\n        return resp.json() if resp.text else None\n\n    # --- Convenience wrappers for common \"self\" / student read tasks -------------\n\n    def list_my_courses(self, enrollment_state: str = \"active\", **extra_params) -> list:\n        params = {\"enrollment_state\": enrollment_state, **extra_params}\n        return self.get_all_pages(\"/courses\", params=params)\n\n    def list_assignments(self, course_id: int | str, **extra_params) -> list:\n        params = {\"include[]\": \"submission\", \"order_by\": \"due_at\", **extra_params}\n        return self.get_all_pages(f\"/courses/{course_id}/assignments\", params=params)\n\n    def get_my_submission(self, course_id: int | str, assignment_id: int | str) -> Any:\n        return self.get(\n            f\"/courses/{course_id}/assignments/{assignment_id}/submissions/self\"\n        )\n\n    def list_my_grades(self) -> list:\n        \"\"\"One enrollment object per active course; each has a `grades` dict with\n        current_score / current_grade / final_score / final_grade.\"\"\"\n        return self.get_all_pages(\n            \"/users/self/enrollments\",\n            params={\"type[]\": \"StudentEnrollment\", \"state[]\": \"active\"},\n        )\n\n    def upcoming_items(self, start_date: str, end_date: str, **extra_params) -> list:\n        \"\"\"start_date/end_date as 'YYYY-MM-DD' or full ISO8601. Returns planner items\n        (assignments, quizzes, discussions, etc.) across every course at once.\"\"\"\n        params = {\"start_date\": start_date, \"end_date\": end_date, **extra_params}\n        return self.get_all_pages(\"/planner/items\", params=params)\n\n    def list_announcements(self, course_id: int | str) -> list:\n        return self.get_all_pages(\n            f\"/courses/{course_id}/discussion_topics\",\n            params={\"only_announcements\": True},\n        )\n\n    def list_files(self, course_id: int | str) -> list:\n        return self.get_all_pages(f\"/courses/{course_id}/files\")\n"}, {"name": "upcoming_items.py", "type": "text", "content": "#!/usr/bin/env python3\n\"\"\"\nShow everything due in the next 7 days across ALL your Canvas courses at once.\n\nUses the Canvas Planner API (`GET /api/v1/planner/items`), which returns\nupcoming assignments, quizzes, discussions, calendar events, etc. across every\ncourse you're enrolled in with a single call -- no need to loop through\ncourses one by one.\n\nRequires:\n    CANVAS_API_TOKEN   - your Canvas personal access token\n    CANVAS_BASE_URL    - your school's Canvas domain, e.g. https://ucsc.instructure.com\n\nUsage:\n    export CANVAS_API_TOKEN=\"...\"\n    export CANVAS_BASE_URL=\"https://ucsc.instructure.com\"\n    python3 upcoming_items.py\n\"\"\"\n\nfrom __future__ import annotations\n\nimport os\nimport sys\nfrom datetime import datetime, timedelta, timezone\n\nfrom canvas_client import CanvasClient, CanvasAPIError\n\n\ndef format_due(iso_ts: str | None) -> str:\n    \"\"\"Convert a Canvas UTC ISO8601 timestamp to a readable local time string.\"\"\"\n    if not iso_ts:\n        return \"(no due date)\"\n    # Canvas timestamps look like \"2026-09-14T23:59:00Z\"\n    dt_utc = datetime.fromisoformat(iso_ts.replace(\"Z\", \"+00:00\"))\n    dt_local = dt_utc.astimezone()  # convert to the machine's local timezone\n    return dt_local.strftime(\"%a %b %d, %I:%M %p %Z\")\n\n\ndef submission_status(item: dict) -> str:\n    \"\"\"Summarize the submission state for a planner item, if any.\"\"\"\n    submissions = item.get(\"submissions\")\n    if not isinstance(submissions, dict) or not submissions:\n        return \"\"\n    flags = []\n    if submissions.get(\"excused\"):\n        flags.append(\"excused\")\n    if submissions.get(\"missing\"):\n        flags.append(\"MISSING\")\n    if submissions.get(\"late\"):\n        flags.append(\"late\")\n    if submissions.get(\"graded\"):\n        flags.append(\"graded\")\n    if submissions.get(\"submitted\") and not submissions.get(\"graded\"):\n        flags.append(\"submitted (ungraded)\")\n    return f\" [{', '.join(flags)}]\" if flags else \"\"\n\n\ndef main() -> int:\n    try:\n        base_url = os.environ[\"CANVAS_BASE_URL\"]\n        token = os.environ[\"CANVAS_API_TOKEN\"]\n    except KeyError as e:\n        print(f\"Missing required environment variable: {e}\", file=sys.stderr)\n        return 1\n\n    client = CanvasClient(base_url=base_url, token=token)\n\n    now = datetime.now(timezone.utc)\n    start_date = now.isoformat()\n    end_date = (now + timedelta(days=7)).isoformat()\n\n    try:\n        # /planner/items covers every course you're enrolled in with one call --\n        # no per-course loop needed. See CanvasClient.upcoming_items().\n        items = client.upcoming_items(start_date=start_date, end_date=end_date)\n    except CanvasAPIError as e:\n        print(f\"Canvas API error: {e}\", file=sys.stderr)\n        return 1\n\n    if not items:\n        print(\"Nothing due in the next 7 days. \ud83c\udf89\")\n        return 0\n\n    # Sort by due date (falling back to the planner's own date field, then to\n    # \"far future\" for items with no date at all so they sort last).\n    def sort_key(item: dict):\n        plannable = item.get(\"plannable\") or {}\n        due = plannable.get(\"due_at\") or item.get(\"plannable_date\") or \"9999\"\n        return due\n\n    items.sort(key=sort_key)\n\n    print(f\"Due in the next 7 days ({now.date()} -> {(now + timedelta(days=7)).date()}):\\n\")\n\n    for item in items:\n        plannable = item.get(\"plannable\") or {}\n        course_name = item.get(\"context_name\") or \"Unknown course\"\n        title = plannable.get(\"title\") or item.get(\"plannable_type\", \"item\")\n        item_type = item.get(\"plannable_type\", \"\")\n        due_at = plannable.get(\"due_at\") or item.get(\"plannable_date\")\n        status = submission_status(item)\n\n        print(f\"- [{course_name}] {title} ({item_type})\")\n        print(f\"    due: {format_due(due_at)}{status}\")\n\n    return 0\n\n\nif __name__ == \"__main__\":\n    raise SystemExit(main())\n"}], "grading": {"expectations": [{"text": "Uses a single cross-course endpoint such as /planner/items rather than looping over each course's assignments individually", "passed": true, "evidence": "Calls /planner/items (directly or via CanvasClient.upcoming_items)."}, {"text": "Passes date-range parameters (e.g. start_date/end_date) scoped to roughly the next 7 days", "passed": true, "evidence": "start_date/end_date params present."}, {"text": "Sends the token as an Authorization: Bearer header read from an environment variable", "passed": true, "evidence": "Found 'Authorization ... Bearer' header construction."}, {"text": "Implements pagination for the list results rather than assuming one response page is complete", "passed": true, "evidence": "Pagination loop follows Link header's rel=next (directly or via get_all_pages)."}, {"text": "Includes retry/backoff handling for a Canvas rate-limit response (403/429 mentioning rate limit) rather than treating it as a hard failure", "passed": true, "evidence": "Rate-limit-aware retry/backoff logic present (via bundled canvas_client.py or inline)."}], "summary": {"passed": 5, "failed": 0, "total": 5, "pass_rate": 1.0}}}, {"id": "eval-upcoming-week-across-courses-without_skill", "prompt": "Write a Python script that shows me everything due in the next 7 days across ALL my Canvas classes at once \u2014 I don't want to loop through each course separately if there's a better way. My token and base URL are in CANVAS_API_TOKEN and CANVAS_BASE_URL env vars.", "eval_id": 1, "outputs": [{"name": "upcoming_items.py", "type": "text", "content": "#!/usr/bin/env python3\n\"\"\"\nShow everything due in the next 7 days across ALL of your Canvas classes at once.\n\nInstead of looping over every course and calling each course's\n/courses/:id/assignments endpoint separately, this uses Canvas's cross-course\nPlanner API:\n\n    GET /api/v1/planner/items?start_date=...&end_date=...\n\nThe Planner API is scoped to the current user (not a single course) and\nreturns assignments, quizzes, discussions, calendar events, and planner\nnotes from every course/group the user is enrolled in that fall within the\ngiven date window - exactly one endpoint, paginated, no per-course looping.\n\nDocs: https://canvas.instructure.com/doc/api/planner.html\n\nRequired environment variables:\n    CANVAS_API_TOKEN  - a Canvas API access token\n    CANVAS_BASE_URL   - e.g. https://yourschool.instructure.com\n\"\"\"\n\nimport os\nimport sys\nfrom datetime import datetime, timedelta, timezone\n\nimport requests\n\n\ndef get_config():\n    token = os.environ.get(\"CANVAS_API_TOKEN\")\n    base_url = os.environ.get(\"CANVAS_BASE_URL\")\n\n    if not token or not base_url:\n        sys.exit(\n            \"ERROR: Please set CANVAS_API_TOKEN and CANVAS_BASE_URL \"\n            \"environment variables.\"\n        )\n\n    return token, base_url.rstrip(\"/\")\n\n\ndef fetch_all_pages(url, headers, params):\n    \"\"\"Follow Canvas's Link-header pagination and return the combined list.\"\"\"\n    items = []\n\n    while url:\n        response = requests.get(url, headers=headers, params=params, timeout=30)\n        response.raise_for_status()\n        items.extend(response.json())\n\n        # After the first request, the params (start_date/end_date/etc.) are\n        # already baked into the \"next\" URL Canvas gives us, so drop them.\n        params = None\n\n        next_url = None\n        link_header = response.headers.get(\"Link\", \"\")\n        for part in link_header.split(\",\"):\n            part = part.strip()\n            if not part:\n                continue\n            url_part, _, rel_part = part.partition(\";\")\n            if 'rel=\"next\"' in rel_part:\n                next_url = url_part.strip().lstrip(\"<\").rstrip(\">\")\n                break\n\n        url = next_url\n\n    return items\n\n\ndef format_due(date_str):\n    if not date_str:\n        return \"No due date\"\n    dt = datetime.fromisoformat(date_str.replace(\"Z\", \"+00:00\"))\n    return dt.astimezone().strftime(\"%a %b %d, %I:%M %p\").replace(\" 0\", \" \")\n\n\ndef main():\n    token, base_url = get_config()\n\n    headers = {\"Authorization\": f\"Bearer {token}\"}\n\n    now = datetime.now(timezone.utc)\n    start_date = now.isoformat()\n    end_date = (now + timedelta(days=7)).isoformat()\n\n    url = f\"{base_url}/api/v1/planner/items\"\n    params = {\n        \"start_date\": start_date,\n        \"end_date\": end_date,\n        \"per_page\": 50,\n        # Only surface items that actually have work attached to them\n        # (assignments, quizzes, discussions, planner notes, calendar\n        # events). Remove this filter if you also want announcements, etc.\n    }\n\n    try:\n        items = fetch_all_pages(url, headers, params)\n    except requests.exceptions.HTTPError as exc:\n        sys.exit(f\"Canvas API request failed: {exc}\\n{exc.response.text}\")\n    except requests.exceptions.RequestException as exc:\n        sys.exit(f\"Network error talking to Canvas: {exc}\")\n\n    if not items:\n        print(\"Nothing due in the next 7 days. Enjoy the break!\")\n        return\n\n    # Group by course for a readable report, but note this required only\n    # ONE API call (plus pagination), not one call per course.\n    by_course = {}\n    for item in items:\n        course_name = item.get(\"context_name\") or \"Other\"\n        by_course.setdefault(course_name, []).append(item)\n\n    print(f\"Items due between now and {(now + timedelta(days=7)).strftime('%b %d')}:\\n\")\n\n    total = 0\n    for course_name in sorted(by_course):\n        course_items = by_course[course_name]\n\n        # Sort each course's items by due date.\n        def sort_key(i):\n            details = i.get(\"plannable\") or {}\n            due = i.get(\"plannable_date\") or details.get(\"due_at\") or \"\"\n            return due\n\n        course_items.sort(key=sort_key)\n\n        print(f\"=== {course_name} ===\")\n        for item in course_items:\n            plannable = item.get(\"plannable\") or {}\n            title = plannable.get(\"title\") or plannable.get(\"name\") or \"(untitled)\"\n            item_type = item.get(\"plannable_type\", \"item\")\n            due_at = item.get(\"plannable_date\") or plannable.get(\"due_at\")\n\n            html_url = item.get(\"html_url\", \"\")\n\n            print(f\"  [{item_type:>15}] {title}\")\n            print(f\"      Due: {format_due(due_at)}\")\n            if html_url:\n                print(f\"      Link: {html_url}\")\n            total += 1\n        print()\n\n    print(f\"Total items due in the next 7 days: {total}\")\n\n\nif __name__ == \"__main__\":\n    main()\n"}], "grading": {"expectations": [{"text": "Uses a single cross-course endpoint such as /planner/items rather than looping over each course's assignments individually", "passed": true, "evidence": "Calls /planner/items (directly or via CanvasClient.upcoming_items)."}, {"text": "Passes date-range parameters (e.g. start_date/end_date) scoped to roughly the next 7 days", "passed": true, "evidence": "start_date/end_date params present."}, {"text": "Sends the token as an Authorization: Bearer header read from an environment variable", "passed": true, "evidence": "Found 'Authorization ... Bearer' header construction."}, {"text": "Implements pagination for the list results rather than assuming one response page is complete", "passed": true, "evidence": "Pagination loop follows Link header's rel=next (directly or via get_all_pages)."}, {"text": "Includes retry/backoff handling for a Canvas rate-limit response (403/429 mentioning rate limit) rather than treating it as a hard failure", "passed": false, "evidence": "No rate-limit retry/backoff logic found \u2014 a 403/429 rate-limit response would be treated as a hard failure."}], "summary": {"passed": 4, "failed": 1, "total": 5, "pass_rate": 0.8}}}, {"id": "eval-grades-per-class-with_skill", "prompt": "I want a script that pulls my current grade (score and letter grade) for every class I'm enrolled in this semester on Canvas and prints them out in a table.", "eval_id": 2, "outputs": [{"name": "canvas_client.py", "type": "text", "content": "\"\"\"\nMinimal Canvas LMS API client.\n\nHandles the three things every non-trivial Canvas script needs and gets wrong at least\nonce: Bearer auth, Link-header pagination, and backing off on rate-limit responses.\nOnly dependency is `requests` (pip install requests).\n\nUsage:\n    import os\n    from canvas_client import CanvasClient\n\n    client = CanvasClient(\n        base_url=os.environ[\"CANVAS_BASE_URL\"],     # e.g. \"https://ucsc.instructure.com\"\n        token=os.environ[\"CANVAS_API_TOKEN\"],\n    )\n\n    courses = client.get_all_pages(\"/courses\", params={\"enrollment_state\": \"active\"})\n    for c in courses:\n        print(c[\"id\"], c[\"name\"])\n\"\"\"\n\nfrom __future__ import annotations\n\nimport time\nfrom typing import Any\nfrom urllib.parse import urljoin\n\nimport requests\n\n\nclass CanvasAPIError(RuntimeError):\n    \"\"\"Raised for non-2xx Canvas responses that aren't a retryable rate limit.\"\"\"\n\n    def __init__(self, status_code: int, url: str, body: str):\n        self.status_code = status_code\n        self.url = url\n        self.body = body\n        super().__init__(f\"Canvas API {status_code} for {url}: {body[:500]}\")\n\n\nclass CanvasClient:\n    def __init__(\n        self,\n        base_url: str,\n        token: str,\n        per_page: int = 100,\n        timeout: float = 30.0,\n        max_rate_limit_retries: int = 3,\n    ):\n        \"\"\"\n        base_url: the school's Canvas domain, e.g. \"https://ucsc.instructure.com\".\n                  No trailing slash needed; /api/v1 is added automatically.\n        token: a personal access token (see SKILL.md's Authentication section).\n        per_page: page size requested on list endpoints. 100 is a safe default across\n                  most Canvas instances; some allow more.\n        max_rate_limit_retries: how many times to back off and retry on a 403 that is\n                  actually a rate-limit response (see _is_rate_limited below), before\n                  giving up and raising.\n        \"\"\"\n        self.base_url = base_url.rstrip(\"/\")\n        self.per_page = per_page\n        self.timeout = timeout\n        self.max_rate_limit_retries = max_rate_limit_retries\n        self._session = requests.Session()\n        self._session.headers.update({\"Authorization\": f\"Bearer {token}\"})\n\n    def _full_url(self, path_or_url: str) -> str:\n        # Accept both a path like \"/courses\" and an absolute URL (as returned in a\n        # Link header) \u2014 Link URLs must be followed as-is, never reconstructed.\n        if path_or_url.startswith(\"http://\") or path_or_url.startswith(\"https://\"):\n            return path_or_url\n        path = path_or_url if path_or_url.startswith(\"/\") else f\"/{path_or_url}\"\n        return urljoin(self.base_url + \"/\", f\"api/v1{path}\".lstrip(\"/\"))\n\n    @staticmethod\n    def _is_rate_limited(resp: requests.Response) -> bool:\n        # Canvas signals throttling with 403 or 429 and a body mentioning the rate\n        # limit; a plain permissions 403 has a different message. Check both status\n        # codes since Canvas's docs and real-world behavior disagree on which is used.\n        if resp.status_code not in (403, 429):\n            return False\n        return \"rate limit\" in resp.text.lower()\n\n    def _request(self, method: str, path_or_url: str, **kwargs) -> requests.Response:\n        url = self._full_url(path_or_url)\n        attempt = 0\n        while True:\n            resp = self._session.request(method, url, timeout=self.timeout, **kwargs)\n            if self._is_rate_limited(resp) and attempt < self.max_rate_limit_retries:\n                attempt += 1\n                time.sleep(2**attempt)  # brief exponential backoff\n                continue\n            if not resp.ok:\n                raise CanvasAPIError(resp.status_code, url, resp.text)\n            return resp\n\n    def get(self, path: str, params: dict[str, Any] | None = None) -> Any:\n        \"\"\"A single request \u2014 use for 'get one object' endpoints. For list endpoints,\n        prefer get_all_pages so you don't silently get only the first page.\"\"\"\n        resp = self._request(\n            \"GET\", path, params={**(params or {}), \"per_page\": self.per_page}\n        )\n        return resp.json()\n\n    def get_all_pages(self, path: str, params: dict[str, Any] | None = None) -> list:\n        \"\"\"Follow the Link header's rel=\"next\" until exhausted, returning every item.\n        Use for any endpoint that returns a JSON array (courses, assignments, etc.).\"\"\"\n        results: list = []\n        next_url: str | None = self._full_url(path)\n        first = True\n        while next_url:\n            resp = self._request(\n                \"GET\",\n                next_url,\n                params={**(params or {}), \"per_page\": self.per_page} if first else None,\n            )\n            first = False\n            page = resp.json()\n            if isinstance(page, list):\n                results.extend(page)\n            else:\n                # Some endpoints (rare) wrap the array in an object; be defensive.\n                results.append(page)\n            next_url = resp.links.get(\"next\", {}).get(\"url\")\n        return results\n\n    def post(self, path: str, data: dict[str, Any] | None = None) -> Any:\n        resp = self._request(\"POST\", path, data=data)\n        return resp.json()\n\n    def put(self, path: str, data: dict[str, Any] | None = None) -> Any:\n        resp = self._request(\"PUT\", path, data=data)\n        return resp.json()\n\n    def delete(self, path: str) -> Any:\n        resp = self._request(\"DELETE\", path)\n        return resp.json() if resp.text else None\n\n    # --- Convenience wrappers for common \"self\" / student read tasks -------------\n\n    def list_my_courses(self, enrollment_state: str = \"active\", **extra_params) -> list:\n        params = {\"enrollment_state\": enrollment_state, **extra_params}\n        return self.get_all_pages(\"/courses\", params=params)\n\n    def list_assignments(self, course_id: int | str, **extra_params) -> list:\n        params = {\"include[]\": \"submission\", \"order_by\": \"due_at\", **extra_params}\n        return self.get_all_pages(f\"/courses/{course_id}/assignments\", params=params)\n\n    def get_my_submission(self, course_id: int | str, assignment_id: int | str) -> Any:\n        return self.get(\n            f\"/courses/{course_id}/assignments/{assignment_id}/submissions/self\"\n        )\n\n    def list_my_grades(self) -> list:\n        \"\"\"One enrollment object per active course; each has a `grades` dict with\n        current_score / current_grade / final_score / final_grade.\"\"\"\n        return self.get_all_pages(\n            \"/users/self/enrollments\",\n            params={\"type[]\": \"StudentEnrollment\", \"state[]\": \"active\"},\n        )\n\n    def upcoming_items(self, start_date: str, end_date: str, **extra_params) -> list:\n        \"\"\"start_date/end_date as 'YYYY-MM-DD' or full ISO8601. Returns planner items\n        (assignments, quizzes, discussions, etc.) across every course at once.\"\"\"\n        params = {\"start_date\": start_date, \"end_date\": end_date, **extra_params}\n        return self.get_all_pages(\"/planner/items\", params=params)\n\n    def list_announcements(self, course_id: int | str) -> list:\n        return self.get_all_pages(\n            f\"/courses/{course_id}/discussion_topics\",\n            params={\"only_announcements\": True},\n        )\n\n    def list_files(self, course_id: int | str) -> list:\n        return self.get_all_pages(f\"/courses/{course_id}/files\")\n"}, {"name": "my_grades.py", "type": "text", "content": "#!/usr/bin/env python3\n\"\"\"\nPrint current grades (score + letter grade) for every course you're actively\nenrolled in this semester on Canvas.\n\nSetup:\n    pip install requests\n    export CANVAS_BASE_URL=\"https://<your-school>.instructure.com\"\n    export CANVAS_API_TOKEN=\"<your personal access token>\"\n\nRun:\n    python3 my_grades.py\n\nHow it works:\n    Canvas's /courses endpoint, when asked for `include[]=total_scores`,\n    returns each course's own enrollment object with your current/final\n    score and letter grade already attached -- no need to hit each course\n    separately or make a second call per class. We also ask for\n    `include[]=term` so the term/semester name can be shown alongside each\n    course. Filtering to `enrollment_state=\"active\"` is what scopes this to\n    \"the courses I'm in right now\" (Canvas doesn't have a single \"current\n    semester\" flag on enrollments, but active enrollments are, in practice,\n    this term's courses -- past terms' enrollments show up as \"completed\").\n\"\"\"\n\nfrom __future__ import annotations\n\nimport os\nimport sys\n\n# canvas_client.py is bundled alongside this script -- see canvas-lms-api SKILL.md.\nfrom canvas_client import CanvasAPIError, CanvasClient\n\n\ndef letter_or_dash(value) -> str:\n    return value if value else \"-\"\n\n\ndef score_or_dash(value) -> str:\n    return f\"{value:.2f}%\" if isinstance(value, (int, float)) else \"-\"\n\n\ndef main() -> int:\n    base_url = os.environ.get(\"CANVAS_BASE_URL\")\n    token = os.environ.get(\"CANVAS_API_TOKEN\")\n\n    if not base_url or not token:\n        print(\n            \"Missing credentials: set CANVAS_BASE_URL and CANVAS_API_TOKEN \"\n            \"environment variables (see the docstring at the top of this file).\",\n            file=sys.stderr,\n        )\n        return 1\n\n    client = CanvasClient(base_url=base_url, token=token)\n\n    try:\n        courses = client.list_my_courses(\n            enrollment_state=\"active\",\n            **{\"include[]\": [\"total_scores\", \"term\"]},\n        )\n    except CanvasAPIError as exc:\n        print(f\"Failed to fetch courses from Canvas: {exc}\", file=sys.stderr)\n        return 1\n\n    rows = []\n    for course in courses:\n        name = course.get(\"name\") or course.get(\"course_code\") or f\"Course {course.get('id')}\"\n        term = (course.get(\"term\") or {}).get(\"name\", \"-\")\n\n        # Find *our* student enrollment on this course (a course can list other\n        # people's enrollments too, e.g. for TAs -- filter to type \"student\").\n        student_enrollment = next(\n            (\n                e\n                for e in course.get(\"enrollments\", [])\n                if e.get(\"type\") == \"student\"\n            ),\n            None,\n        )\n        if student_enrollment is None:\n            # We have some non-student access to this course (observer/TA/etc.);\n            # there's no grade to report for us here.\n            continue\n\n        rows.append(\n            {\n                \"course\": name,\n                \"term\": term,\n                \"current_score\": score_or_dash(student_enrollment.get(\"computed_current_score\")),\n                \"current_grade\": letter_or_dash(student_enrollment.get(\"computed_current_grade\")),\n                \"final_score\": score_or_dash(student_enrollment.get(\"computed_final_score\")),\n                \"final_grade\": letter_or_dash(student_enrollment.get(\"computed_final_grade\")),\n            }\n        )\n\n    if not rows:\n        print(\"No active student enrollments with grades were found.\")\n        return 0\n\n    rows.sort(key=lambda r: r[\"course\"].lower())\n\n    headers = [\"Course\", \"Term\", \"Current Score\", \"Current Grade\", \"Final Score\", \"Final Grade\"]\n    col_widths = [\n        max(len(headers[i]), *(len(r[k]) for r in rows)) if rows else len(headers[i])\n        for i, k in enumerate([\"course\", \"term\", \"current_score\", \"current_grade\", \"final_score\", \"final_grade\"])\n    ]\n\n    def fmt_row(values: list[str]) -> str:\n        return \"  \".join(v.ljust(w) for v, w in zip(values, col_widths))\n\n    print(fmt_row(headers))\n    print(\"  \".join(\"-\" * w for w in col_widths))\n    for r in rows:\n        print(\n            fmt_row(\n                [\n                    r[\"course\"],\n                    r[\"term\"],\n                    r[\"current_score\"],\n                    r[\"current_grade\"],\n                    r[\"final_score\"],\n                    r[\"final_grade\"],\n                ]\n            )\n        )\n\n    return 0\n\n\nif __name__ == \"__main__\":\n    raise SystemExit(main())\n"}], "grading": {"expectations": [{"text": "Fetches grades via a single Canvas-computed source (an enrollments call or /courses?include[]=total_scores) rather than manually averaging individual assignment scores", "passed": true, "evidence": "Uses client.list_my_courses(..., include[]=[total_scores, term]) \u2014 i.e. /courses?include[]=total_scores \u2014 rather than the bundled client's list_my_grades() (/users/self/enrollments) helper. Still a single-call, Canvas-computed source, not manual averaging, but it means the agent didn't reach for the dedicated grades helper the skill provides."}, {"text": "Extracts both a numeric score and a letter/scheme grade field (e.g. current_score and current_grade)", "passed": true, "evidence": "Extracts computed_current_score and computed_current_grade."}, {"text": "Sends the token as an Authorization: Bearer header read from an environment variable", "passed": true, "evidence": "Found 'Authorization ... Bearer' header construction."}, {"text": "Implements pagination for the list results rather than assuming one response page is complete", "passed": true, "evidence": "Pagination loop follows Link header's rel=next (directly or via get_all_pages)."}, {"text": "Includes retry/backoff handling for a Canvas rate-limit response (403/429 mentioning rate limit) rather than treating it as a hard failure", "passed": true, "evidence": "Rate-limit-aware retry/backoff logic present (via bundled canvas_client.py or inline)."}], "summary": {"passed": 5, "failed": 0, "total": 5, "pass_rate": 1.0}}}, {"id": "eval-grades-per-class-without_skill", "prompt": "I want a script that pulls my current grade (score and letter grade) for every class I'm enrolled in this semester on Canvas and prints them out in a table.", "eval_id": 2, "outputs": [{"name": "my_grades.py", "type": "text", "content": "#!/usr/bin/env python3\n\"\"\"\nmy_grades.py\n\nPulls your current grade (score and letter grade) for every course you are\nactively enrolled in this semester on Canvas, and prints them out as a table.\n\nSetup:\n    export CANVAS_API_TOKEN=\"<your Canvas API access token>\"\n    export CANVAS_BASE_URL=\"https://<your-school>.instructure.com\"\n\n    Generate a token in Canvas at:\n    Account -> Settings -> Approved Integrations -> New Access Token\n\nUsage:\n    python3 my_grades.py\n\"\"\"\n\nimport os\nimport sys\nfrom typing import Any, Dict, List, Optional\n\nimport requests\n\n\ndef get_config() -> Dict[str, str]:\n    \"\"\"Read Canvas credentials from environment variables.\"\"\"\n    token = os.environ.get(\"CANVAS_API_TOKEN\")\n    base_url = os.environ.get(\"CANVAS_BASE_URL\")\n\n    missing = [\n        name\n        for name, value in (\n            (\"CANVAS_API_TOKEN\", token),\n            (\"CANVAS_BASE_URL\", base_url),\n        )\n        if not value\n    ]\n    if missing:\n        sys.stderr.write(\n            \"Missing required environment variable(s): \"\n            + \", \".join(missing)\n            + \"\\n\"\n            \"Set CANVAS_API_TOKEN to a Canvas access token and \"\n            \"CANVAS_BASE_URL to your Canvas instance's base URL \"\n            \"(e.g. https://yourschool.instructure.com).\\n\"\n        )\n        sys.exit(1)\n\n    return {\"token\": token, \"base_url\": base_url.rstrip(\"/\")}\n\n\ndef get_paginated(\n    session: requests.Session, url: str, params: Optional[Dict[str, Any]] = None\n) -> List[Dict[str, Any]]:\n    \"\"\"\n    Fetch all pages of a Canvas API list endpoint, following the\n    rel=\"next\" links in the response's Link header.\n    \"\"\"\n    results: List[Dict[str, Any]] = []\n    next_url = url\n    next_params = params\n\n    while next_url:\n        response = session.get(next_url, params=next_params, timeout=30)\n        response.raise_for_status()\n        results.extend(response.json())\n\n        # After the first request, pagination params are baked into the\n        # \"next\" URL itself, so we no longer pass params explicitly.\n        next_params = None\n        next_url = None\n        for link in response.links.values():\n            if link.get(\"rel\") == \"next\":\n                next_url = link[\"url\"]\n                break\n\n    return results\n\n\ndef fetch_active_courses_with_grades(\n    session: requests.Session, base_url: str\n) -> List[Dict[str, Any]]:\n    \"\"\"\n    Fetch courses for the current user, restricted to active enrollments\n    (i.e. this semester's classes), including each course's current grade\n    totals.\n\n    Endpoint: GET /api/v1/courses\n    Docs: https://canvas.instructure.com/doc/api/courses.html#method.courses.index\n    \"\"\"\n    url = f\"{base_url}/api/v1/courses\"\n    params = {\n        \"enrollment_state\": \"active\",\n        \"enrollment_type\": \"student\",\n        \"include[]\": [\"total_scores\", \"current_grading_period_scores\"],\n        \"per_page\": 100,\n    }\n    return get_paginated(session, url, params)\n\n\ndef extract_grade_info(course: Dict[str, Any]) -> Dict[str, Any]:\n    \"\"\"\n    Pull the current score/grade out of a course's student enrollment entry.\n\n    When `include[]=total_scores` is requested, each course response\n    contains an \"enrollments\" list; the student's own enrollment carries\n    computed_current_score / computed_current_grade fields.\n    \"\"\"\n    course_name = course.get(\"name\") or course.get(\"course_code\") or \"Unknown course\"\n    course_code = course.get(\"course_code\", \"\")\n\n    score: Optional[float] = None\n    grade: Optional[str] = None\n\n    for enrollment in course.get(\"enrollments\", []) or []:\n        if enrollment.get(\"type\") == \"student\" or enrollment.get(\"role\") == \"StudentEnrollment\":\n            score = enrollment.get(\"computed_current_score\")\n            grade = enrollment.get(\"computed_current_grade\")\n            break\n\n    return {\n        \"course_name\": course_name,\n        \"course_code\": course_code,\n        \"score\": score,\n        \"grade\": grade,\n    }\n\n\ndef format_score(score: Optional[float]) -> str:\n    if score is None:\n        return \"N/A\"\n    return f\"{score:.2f}%\"\n\n\ndef format_grade(grade: Optional[str]) -> str:\n    if grade is None or grade == \"\":\n        return \"N/A\"\n    return grade\n\n\ndef print_grades_table(rows: List[Dict[str, Any]]) -> None:\n    if not rows:\n        print(\"No active courses with grade data were found.\")\n        return\n\n    headers = (\"Course\", \"Score\", \"Grade\")\n    table_rows = [\n        (row[\"course_name\"], format_score(row[\"score\"]), format_grade(row[\"grade\"]))\n        for row in rows\n    ]\n\n    col_widths = [\n        max(len(headers[i]), *(len(r[i]) for r in table_rows)) for i in range(3)\n    ]\n\n    def format_row(values: tuple) -> str:\n        return \"  \".join(v.ljust(col_widths[i]) for i, v in enumerate(values))\n\n    separator = \"  \".join(\"-\" * w for w in col_widths)\n\n    print(format_row(headers))\n    print(separator)\n    for row in table_rows:\n        print(format_row(row))\n\n\ndef main() -> None:\n    config = get_config()\n\n    session = requests.Session()\n    session.headers.update({\"Authorization\": f\"Bearer {config['token']}\"})\n\n    try:\n        courses = fetch_active_courses_with_grades(session, config[\"base_url\"])\n    except requests.exceptions.RequestException as exc:\n        sys.stderr.write(f\"Error contacting Canvas API: {exc}\\n\")\n        sys.exit(1)\n\n    grade_rows = [extract_grade_info(course) for course in courses]\n    # Sort alphabetically by course name for a stable, readable table.\n    grade_rows.sort(key=lambda r: r[\"course_name\"].lower())\n\n    print_grades_table(grade_rows)\n\n\nif __name__ == \"__main__\":\n    main()\n"}], "grading": {"expectations": [{"text": "Fetches grades via a single Canvas-computed source (an enrollments call or /courses?include[]=total_scores) rather than manually averaging individual assignment scores", "passed": true, "evidence": "Uses /courses?include[]=total_scores (an alternate single-call, Canvas-computed source of grades) rather than manually averaging."}, {"text": "Extracts both a numeric score and a letter/scheme grade field (e.g. current_score and current_grade)", "passed": true, "evidence": "Extracts computed_current_score and computed_current_grade."}, {"text": "Sends the token as an Authorization: Bearer header read from an environment variable", "passed": true, "evidence": "Found 'Authorization ... Bearer' header construction."}, {"text": "Implements pagination for the list results rather than assuming one response page is complete", "passed": true, "evidence": "Pagination loop follows Link header's rel=next (directly or via get_all_pages)."}, {"text": "Includes retry/backoff handling for a Canvas rate-limit response (403/429 mentioning rate limit) rather than treating it as a hard failure", "passed": false, "evidence": "No rate-limit retry/backoff logic found \u2014 a 403/429 rate-limit response would be treated as a hard failure."}], "summary": {"passed": 4, "failed": 1, "total": 5, "pass_rate": 0.8}}}], "previous_feedback": {}, "previous_outputs": {}, "benchmark": {"metadata": {"skill_name": "canvas-lms-api", "skill_path": "<path/to/skill>", "executor_model": "<model-name>", "analyzer_model": "<model-name>", "timestamp": "2026-09-14T16:01:02Z", "evals_run": [0, 1, 2], "runs_per_configuration": 3}, "runs": [{"eval_id": 2, "configuration": "with_skill", "run_number": 1, "result": {"pass_rate": 1.0, "passed": 5, "failed": 0, "total": 5, "time_seconds": 39.2, "tokens": 59516, "tool_calls": 0, "errors": 0}, "expectations": [{"text": "Fetches grades via a single Canvas-computed source (an enrollments call or /courses?include[]=total_scores) rather than manually averaging individual assignment scores", "passed": true, "evidence": "Uses client.list_my_courses(..., include[]=[total_scores, term]) \u2014 i.e. /courses?include[]=total_scores \u2014 rather than the bundled client's list_my_grades() (/users/self/enrollments) helper. Still a single-call, Canvas-computed source, not manual averaging, but it means the agent didn't reach for the dedicated grades helper the skill provides."}, {"text": "Extracts both a numeric score and a letter/scheme grade field (e.g. current_score and current_grade)", "passed": true, "evidence": "Extracts computed_current_score and computed_current_grade."}, {"text": "Sends the token as an Authorization: Bearer header read from an environment variable", "passed": true, "evidence": "Found 'Authorization ... Bearer' header construction."}, {"text": "Implements pagination for the list results rather than assuming one response page is complete", "passed": true, "evidence": "Pagination loop follows Link header's rel=next (directly or via get_all_pages)."}, {"text": "Includes retry/backoff handling for a Canvas rate-limit response (403/429 mentioning rate limit) rather than treating it as a hard failure", "passed": true, "evidence": "Rate-limit-aware retry/backoff logic present (via bundled canvas_client.py or inline)."}], "notes": []}, {"eval_id": 0, "configuration": "with_skill", "run_number": 1, "result": {"pass_rate": 1.0, "passed": 6, "failed": 0, "total": 6, "time_seconds": 24.1, "tokens": 57743, "tool_calls": 0, "errors": 0}, "expectations": [{"text": "Sends the token as an 'Authorization: Bearer <token>' header, not as an access_token query/body param", "passed": true, "evidence": "Found 'Authorization ... Bearer' header construction."}, {"text": "Reads the token from an environment variable rather than hardcoding a literal token string", "passed": true, "evidence": "Token is read via os.environ[...]/os.environ.get(...)."}, {"text": "Calls the /courses (or /api/v1/courses) list endpoint with an enrollment_state=active filter", "passed": true, "evidence": "enrollment_state=active passed as a request param."}, {"text": "Implements pagination that follows the Link/next relation (or equivalent loop) rather than only reading a single page/response", "passed": true, "evidence": "Pagination loop follows Link header's rel=next (directly or via get_all_pages)."}, {"text": "Does not print or log the raw token value anywhere", "passed": true, "evidence": "The only print() near the word 'token' is a static usage-help string ('export CANVAS_API_TOKEN=<your Canvas access token>'), not an interpolation of the actual token variable value."}, {"text": "Includes retry/backoff handling for a Canvas rate-limit response (403/429 mentioning rate limit) rather than treating it as a hard failure", "passed": true, "evidence": "Rate-limit-aware retry/backoff logic present (via bundled canvas_client.py or inline)."}], "notes": []}, {"eval_id": 1, "configuration": "with_skill", "run_number": 1, "result": {"pass_rate": 1.0, "passed": 5, "failed": 0, "total": 5, "time_seconds": 26.9, "tokens": 58567, "tool_calls": 0, "errors": 0}, "expectations": [{"text": "Uses a single cross-course endpoint such as /planner/items rather than looping over each course's assignments individually", "passed": true, "evidence": "Calls /planner/items (directly or via CanvasClient.upcoming_items)."}, {"text": "Passes date-range parameters (e.g. start_date/end_date) scoped to roughly the next 7 days", "passed": true, "evidence": "start_date/end_date params present."}, {"text": "Sends the token as an Authorization: Bearer header read from an environment variable", "passed": true, "evidence": "Found 'Authorization ... Bearer' header construction."}, {"text": "Implements pagination for the list results rather than assuming one response page is complete", "passed": true, "evidence": "Pagination loop follows Link header's rel=next (directly or via get_all_pages)."}, {"text": "Includes retry/backoff handling for a Canvas rate-limit response (403/429 mentioning rate limit) rather than treating it as a hard failure", "passed": true, "evidence": "Rate-limit-aware retry/backoff logic present (via bundled canvas_client.py or inline)."}], "notes": []}, {"eval_id": 2, "configuration": "without_skill", "run_number": 1, "result": {"pass_rate": 0.8, "passed": 4, "failed": 1, "total": 5, "time_seconds": 29.7, "tokens": 51529, "tool_calls": 0, "errors": 0}, "expectations": [{"text": "Fetches grades via a single Canvas-computed source (an enrollments call or /courses?include[]=total_scores) rather than manually averaging individual assignment scores", "passed": true, "evidence": "Uses /courses?include[]=total_scores (an alternate single-call, Canvas-computed source of grades) rather than manually averaging."}, {"text": "Extracts both a numeric score and a letter/scheme grade field (e.g. current_score and current_grade)", "passed": true, "evidence": "Extracts computed_current_score and computed_current_grade."}, {"text": "Sends the token as an Authorization: Bearer header read from an environment variable", "passed": true, "evidence": "Found 'Authorization ... Bearer' header construction."}, {"text": "Implements pagination for the list results rather than assuming one response page is complete", "passed": true, "evidence": "Pagination loop follows Link header's rel=next (directly or via get_all_pages)."}, {"text": "Includes retry/backoff handling for a Canvas rate-limit response (403/429 mentioning rate limit) rather than treating it as a hard failure", "passed": false, "evidence": "No rate-limit retry/backoff logic found \u2014 a 403/429 rate-limit response would be treated as a hard failure."}], "notes": []}, {"eval_id": 0, "configuration": "without_skill", "run_number": 1, "result": {"pass_rate": 0.8333, "passed": 5, "failed": 1, "total": 6, "time_seconds": 15.5, "tokens": 49814, "tool_calls": 0, "errors": 0}, "expectations": [{"text": "Sends the token as an 'Authorization: Bearer <token>' header, not as an access_token query/body param", "passed": true, "evidence": "Found 'Authorization ... Bearer' header construction."}, {"text": "Reads the token from an environment variable rather than hardcoding a literal token string", "passed": true, "evidence": "Token is read via os.environ[...]/os.environ.get(...)."}, {"text": "Calls the /courses (or /api/v1/courses) list endpoint with an enrollment_state=active filter", "passed": true, "evidence": "enrollment_state=active passed as a request param."}, {"text": "Implements pagination that follows the Link/next relation (or equivalent loop) rather than only reading a single page/response", "passed": true, "evidence": "Pagination loop follows Link header's rel=next (directly or via get_all_pages)."}, {"text": "Does not print or log the raw token value anywhere", "passed": true, "evidence": "The only print() near the word 'token' is a static usage-help string ('export CANVAS_API_TOKEN=<your Canvas access token>'), not an interpolation of the actual token variable value."}, {"text": "Includes retry/backoff handling for a Canvas rate-limit response (403/429 mentioning rate limit) rather than treating it as a hard failure", "passed": false, "evidence": "No rate-limit retry/backoff logic found \u2014 a 403/429 rate-limit response would be treated as a hard failure."}], "notes": []}, {"eval_id": 1, "configuration": "without_skill", "run_number": 1, "result": {"pass_rate": 0.8, "passed": 4, "failed": 1, "total": 5, "time_seconds": 30.7, "tokens": 51235, "tool_calls": 0, "errors": 0}, "expectations": [{"text": "Uses a single cross-course endpoint such as /planner/items rather than looping over each course's assignments individually", "passed": true, "evidence": "Calls /planner/items (directly or via CanvasClient.upcoming_items)."}, {"text": "Passes date-range parameters (e.g. start_date/end_date) scoped to roughly the next 7 days", "passed": true, "evidence": "start_date/end_date params present."}, {"text": "Sends the token as an Authorization: Bearer header read from an environment variable", "passed": true, "evidence": "Found 'Authorization ... Bearer' header construction."}, {"text": "Implements pagination for the list results rather than assuming one response page is complete", "passed": true, "evidence": "Pagination loop follows Link header's rel=next (directly or via get_all_pages)."}, {"text": "Includes retry/backoff handling for a Canvas rate-limit response (403/429 mentioning rate limit) rather than treating it as a hard failure", "passed": false, "evidence": "No rate-limit retry/backoff logic found \u2014 a 403/429 rate-limit response would be treated as a hard failure."}], "notes": []}], "run_summary": {"with_skill": {"pass_rate": {"mean": 1.0, "stddev": 0.0, "min": 1.0, "max": 1.0}, "time_seconds": {"mean": 30.0667, "stddev": 8.0326, "min": 24.1, "max": 39.2}, "tokens": {"mean": 58608.6667, "stddev": 887.2341, "min": 57743, "max": 59516}}, "without_skill": {"pass_rate": {"mean": 0.8111, "stddev": 0.0192, "min": 0.8, "max": 0.8333}, "time_seconds": {"mean": 25.3, "stddev": 8.5018, "min": 15.5, "max": 30.7}, "tokens": {"mean": 50859.3333, "stddev": 917.1425, "min": 49814, "max": 51529}}, "delta": {"pass_rate": "+0.19", "time_seconds": "+4.8", "tokens": "+7749"}}, "notes": ["Baseline (no skill) already scores 81% \u2014 Sonnet's training data covers the public Canvas API well (correct Bearer auth, Link-header pagination, and even the /planner/items cross-course endpoint) even with no skill present.", "The one assertion that cleanly discriminates across all 3 evals is rate-limit retry/backoff: 3/3 with-skill runs passed it (via the bundled canvas_client.py's exponential-backoff retry) and 0/3 baseline runs did \u2014 baseline scripts treat a 403/429 rate-limit response as a hard failure. This is the skill's clearest, most consistent value-add and it's specifically the kind of bug that's invisible until a script is run against a live, busy Canvas instance.", "On the grades-per-class eval, the with-skill agent used /courses?include[]=total_scores instead of the bundled client's own list_my_grades() helper (/users/self/enrollments) \u2014 still a valid single-call, Canvas-computed approach, but it means the skill's guidance under 'My grades' didn't fully steer the agent to the dedicated helper sitting right next to it. Worth tightening in the next iteration.", "An initial assertion requiring both token AND base URL to come from env vars was dropped after both configurations hardcoded the base URL (which the user explicitly stated in the prompt) \u2014 that assertion didn't discriminate and was testing a phrasing artifact of the eval prompt rather than a real skill gap."]}};
+
+    // ---- State ----
+    let feedbackMap = {};  // run_id -> feedback text
+    let currentIndex = 0;
+    let visitedRuns = new Set();
+
+    // ---- Init ----
+    async function init() {
+      // Load saved feedback from server — but only if this isn't a fresh
+      // iteration (indicated by previous_feedback being present). When
+      // previous feedback exists, the feedback.json on disk is stale from
+      // the prior iteration and should not pre-fill the textareas.
+      const hasPrevious = Object.keys(EMBEDDED_DATA.previous_feedback || {}).length > 0
+        || Object.keys(EMBEDDED_DATA.previous_outputs || {}).length > 0;
+      if (!hasPrevious) {
+        try {
+          const resp = await fetch("/api/feedback");
+          const data = await resp.json();
+          if (data.reviews) {
+            for (const r of data.reviews) feedbackMap[r.run_id] = r.feedback;
+          }
+        } catch { /* first run, no feedback yet */ }
+      }
+
+      document.getElementById("skill-name").textContent = EMBEDDED_DATA.skill_name;
+      showRun(0);
+
+      // Wire up feedback auto-save
+      const textarea = document.getElementById("feedback");
+      let saveTimeout = null;
+      textarea.addEventListener("input", () => {
+        clearTimeout(saveTimeout);
+        document.getElementById("feedback-status").textContent = "";
+        saveTimeout = setTimeout(() => saveCurrentFeedback(), 800);
+      });
+    }
+
+    // ---- Navigation ----
+    function navigate(delta) {
+      const newIndex = currentIndex + delta;
+      if (newIndex >= 0 && newIndex < EMBEDDED_DATA.runs.length) {
+        saveCurrentFeedback();
+        showRun(newIndex);
+      }
+    }
+
+    function updateNavButtons() {
+      document.getElementById("prev-btn").disabled = currentIndex === 0;
+      document.getElementById("next-btn").disabled =
+        currentIndex === EMBEDDED_DATA.runs.length - 1;
+    }
+
+    // ---- Show a run ----
+    function showRun(index) {
+      currentIndex = index;
+      const run = EMBEDDED_DATA.runs[index];
+
+      // Progress
+      document.getElementById("progress").textContent =
+        `${index + 1} of ${EMBEDDED_DATA.runs.length}`;
+
+      // Prompt
+      document.getElementById("prompt-text").textContent = run.prompt;
+
+      // Config badge
+      const badge = document.getElementById("config-badge");
+      const configMatch = run.id.match(/(with_skill|without_skill|new_skill|old_skill)/);
+      if (configMatch) {
+        const config = configMatch[1];
+        const isBaseline = config === "without_skill" || config === "old_skill";
+        badge.textContent = config.replace(/_/g, " ");
+        badge.className = "config-badge " + (isBaseline ? "config-baseline" : "config-primary");
+        badge.style.display = "inline-block";
+      } else {
+        badge.style.display = "none";
+      }
+
+      // Outputs
+      renderOutputs(run);
+
+      // Previous outputs
+      renderPrevOutputs(run);
+
+      // Grades
+      renderGrades(run);
+
+      // Previous feedback
+      const prevFb = (EMBEDDED_DATA.previous_feedback || {})[run.id];
+      const prevEl = document.getElementById("prev-feedback");
+      if (prevFb) {
+        document.getElementById("prev-feedback-text").textContent = prevFb;
+        prevEl.style.display = "block";
+      } else {
+        prevEl.style.display = "none";
+      }
+
+      // Feedback
+      document.getElementById("feedback").value = feedbackMap[run.id] || "";
+      document.getElementById("feedback-status").textContent = "";
+
+      updateNavButtons();
+
+      // Track visited runs and promote done button when all visited
+      visitedRuns.add(index);
+      const doneBtn = document.getElementById("done-btn");
+      if (visitedRuns.size >= EMBEDDED_DATA.runs.length) {
+        doneBtn.classList.add("ready");
+      }
+
+      // Scroll main content to top
+      document.querySelector(".main").scrollTop = 0;
+    }
+
+    // ---- Render outputs ----
+    function renderOutputs(run) {
+      const container = document.getElementById("outputs-body");
+      container.innerHTML = "";
+
+      const outputs = run.outputs || [];
+      if (outputs.length === 0) {
+        container.innerHTML = '<div class="empty-state">No output files</div>';
+        return;
+      }
+
+      for (const file of outputs) {
+        const fileDiv = document.createElement("div");
+        fileDiv.className = "output-file";
+
+        // Always show file header with download link
+        const header = document.createElement("div");
+        header.className = "output-file-header";
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = file.name;
+        header.appendChild(nameSpan);
+        const dlBtn = document.createElement("a");
+        dlBtn.className = "dl-btn";
+        dlBtn.textContent = "Download";
+        dlBtn.download = file.name;
+        dlBtn.href = getDownloadUri(file);
+        header.appendChild(dlBtn);
+        fileDiv.appendChild(header);
+
+        const content = document.createElement("div");
+        content.className = "output-file-content";
+
+        if (file.type === "text") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          content.appendChild(pre);
+        } else if (file.type === "image") {
+          const img = document.createElement("img");
+          img.src = file.data_uri;
+          img.alt = file.name;
+          content.appendChild(img);
+        } else if (file.type === "pdf") {
+          const iframe = document.createElement("iframe");
+          iframe.src = file.data_uri;
+          content.appendChild(iframe);
+        } else if (file.type === "xlsx") {
+          renderXlsx(content, file.data_b64);
+        } else if (file.type === "binary") {
+          const a = document.createElement("a");
+          a.className = "download-link";
+          a.href = file.data_uri;
+          a.download = file.name;
+          a.textContent = "Download " + file.name;
+          content.appendChild(a);
+        } else if (file.type === "error") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          pre.style.color = "var(--red)";
+          content.appendChild(pre);
+        }
+
+        fileDiv.appendChild(content);
+        container.appendChild(fileDiv);
+      }
+    }
+
+    // ---- XLSX rendering via SheetJS ----
+    function renderXlsx(container, b64Data) {
+      try {
+        const raw = Uint8Array.from(atob(b64Data), c => c.charCodeAt(0));
+        const wb = XLSX.read(raw, { type: "array" });
+
+        for (let i = 0; i < wb.SheetNames.length; i++) {
+          const sheetName = wb.SheetNames[i];
+          const ws = wb.Sheets[sheetName];
+
+          if (wb.SheetNames.length > 1) {
+            const sheetLabel = document.createElement("div");
+            sheetLabel.style.cssText =
+              "font-weight:600; font-size:0.8rem; color:#b0aea5; margin-top:0.5rem; margin-bottom:0.25rem;";
+            sheetLabel.textContent = "Sheet: " + sheetName;
+            container.appendChild(sheetLabel);
+          }
+
+          const htmlStr = XLSX.utils.sheet_to_html(ws, { editable: false });
+          const wrapper = document.createElement("div");
+          wrapper.innerHTML = htmlStr;
+          container.appendChild(wrapper);
+        }
+      } catch (err) {
+        container.textContent = "Error rendering spreadsheet: " + err.message;
+      }
+    }
+
+    // ---- Grades ----
+    function renderGrades(run) {
+      const section = document.getElementById("grades-section");
+      const content = document.getElementById("grades-content");
+
+      if (!run.grading) {
+        section.style.display = "none";
+        return;
+      }
+
+      const grading = run.grading;
+      section.style.display = "block";
+      // Reset to collapsed
+      content.classList.remove("open");
+      document.getElementById("grades-arrow").classList.remove("open");
+
+      const summary = grading.summary || {};
+      const expectations = grading.expectations || [];
+
+      let html = '<div style="padding: 1rem;">';
+
+      // Summary line
+      const passRate = summary.pass_rate != null
+        ? Math.round(summary.pass_rate * 100) + "%"
+        : "?";
+      const badgeClass = summary.pass_rate >= 0.8 ? "grade-pass" : summary.pass_rate >= 0.5 ? "" : "grade-fail";
+      html += '<div class="grades-summary">';
+      html += '<span class="grade-badge ' + badgeClass + '">' + passRate + '</span>';
+      html += '<span>' + (summary.passed || 0) + ' passed, ' + (summary.failed || 0) + ' failed of ' + (summary.total || 0) + '</span>';
+      html += '</div>';
+
+      // Assertions list
+      html += '<ul class="assertion-list">';
+      for (const exp of expectations) {
+        const statusClass = exp.passed ? "pass" : "fail";
+        const statusIcon = exp.passed ? "\u2713" : "\u2717";
+        html += '<li class="assertion-item">';
+        html += '<span class="assertion-status ' + statusClass + '">' + statusIcon + '</span>';
+        html += '<span>' + escapeHtml(exp.text) + '</span>';
+        if (exp.evidence) {
+          html += '<div class="assertion-evidence">' + escapeHtml(exp.evidence) + '</div>';
+        }
+        html += '</li>';
+      }
+      html += '</ul>';
+
+      html += '</div>';
+      content.innerHTML = html;
+    }
+
+    function toggleGrades() {
+      const content = document.getElementById("grades-content");
+      const arrow = document.getElementById("grades-arrow");
+      content.classList.toggle("open");
+      arrow.classList.toggle("open");
+    }
+
+    // ---- Previous outputs (collapsible) ----
+    function renderPrevOutputs(run) {
+      const section = document.getElementById("prev-outputs-section");
+      const content = document.getElementById("prev-outputs-content");
+      const prevOutputs = (EMBEDDED_DATA.previous_outputs || {})[run.id];
+
+      if (!prevOutputs || prevOutputs.length === 0) {
+        section.style.display = "none";
+        return;
+      }
+
+      section.style.display = "block";
+      // Reset to collapsed
+      content.classList.remove("open");
+      document.getElementById("prev-outputs-arrow").classList.remove("open");
+
+      // Render the files into the content area
+      content.innerHTML = "";
+      const wrapper = document.createElement("div");
+      wrapper.style.padding = "1rem";
+
+      for (const file of prevOutputs) {
+        const fileDiv = document.createElement("div");
+        fileDiv.className = "output-file";
+
+        const header = document.createElement("div");
+        header.className = "output-file-header";
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = file.name;
+        header.appendChild(nameSpan);
+        const dlBtn = document.createElement("a");
+        dlBtn.className = "dl-btn";
+        dlBtn.textContent = "Download";
+        dlBtn.download = file.name;
+        dlBtn.href = getDownloadUri(file);
+        header.appendChild(dlBtn);
+        fileDiv.appendChild(header);
+
+        const fc = document.createElement("div");
+        fc.className = "output-file-content";
+
+        if (file.type === "text") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          fc.appendChild(pre);
+        } else if (file.type === "image") {
+          const img = document.createElement("img");
+          img.src = file.data_uri;
+          img.alt = file.name;
+          fc.appendChild(img);
+        } else if (file.type === "pdf") {
+          const iframe = document.createElement("iframe");
+          iframe.src = file.data_uri;
+          fc.appendChild(iframe);
+        } else if (file.type === "xlsx") {
+          renderXlsx(fc, file.data_b64);
+        } else if (file.type === "binary") {
+          const a = document.createElement("a");
+          a.className = "download-link";
+          a.href = file.data_uri;
+          a.download = file.name;
+          a.textContent = "Download " + file.name;
+          fc.appendChild(a);
+        }
+
+        fileDiv.appendChild(fc);
+        wrapper.appendChild(fileDiv);
+      }
+
+      content.appendChild(wrapper);
+    }
+
+    function togglePrevOutputs() {
+      const content = document.getElementById("prev-outputs-content");
+      const arrow = document.getElementById("prev-outputs-arrow");
+      content.classList.toggle("open");
+      arrow.classList.toggle("open");
+    }
+
+    // ---- Feedback (saved to server -> feedback.json) ----
+    function saveCurrentFeedback() {
+      const run = EMBEDDED_DATA.runs[currentIndex];
+      const text = document.getElementById("feedback").value;
+
+      if (text.trim() === "") {
+        delete feedbackMap[run.id];
+      } else {
+        feedbackMap[run.id] = text;
+      }
+
+      // Build reviews array from map
+      const reviews = [];
+      for (const [run_id, feedback] of Object.entries(feedbackMap)) {
+        if (feedback.trim()) {
+          reviews.push({ run_id, feedback, timestamp: new Date().toISOString() });
+        }
+      }
+
+      fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reviews, status: "in_progress" }),
+      }).then(() => {
+        document.getElementById("feedback-status").textContent = "Saved";
+      }).catch(() => {
+        // Static mode or server unavailable — no-op on auto-save,
+        // feedback will be downloaded on final submit
+        document.getElementById("feedback-status").textContent = "Will download on submit";
+      });
+    }
+
+    // ---- Done ----
+    function showDoneDialog() {
+      // Save current textarea to feedbackMap (but don't POST yet)
+      const run = EMBEDDED_DATA.runs[currentIndex];
+      const text = document.getElementById("feedback").value;
+      if (text.trim() === "") {
+        delete feedbackMap[run.id];
+      } else {
+        feedbackMap[run.id] = text;
+      }
+
+      // POST once with status: complete — include ALL runs so the model
+      // can distinguish "no feedback" (looks good) from "not reviewed"
+      const reviews = [];
+      const ts = new Date().toISOString();
+      for (const r of EMBEDDED_DATA.runs) {
+        reviews.push({ run_id: r.id, feedback: feedbackMap[r.id] || "", timestamp: ts });
+      }
+      const payload = JSON.stringify({ reviews, status: "complete" }, null, 2);
+      fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: payload,
+      }).then(() => {
+        document.getElementById("done-overlay").classList.add("visible");
+      }).catch(() => {
+        // Server not available (static mode) — download as file
+        const blob = new Blob([payload], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "feedback.json";
+        a.click();
+        URL.revokeObjectURL(url);
+        document.getElementById("done-overlay").classList.add("visible");
+      });
+    }
+
+    function closeDoneDialog() {
+      // Reset status back to in_progress
+      saveCurrentFeedback();
+      document.getElementById("done-overlay").classList.remove("visible");
+    }
+
+    // ---- Toast ----
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.classList.add("visible");
+      setTimeout(() => toast.classList.remove("visible"), 2000);
+    }
+
+    // ---- Keyboard nav ----
+    document.addEventListener("keydown", (e) => {
+      // Don't capture when typing in textarea
+      if (e.target.tagName === "TEXTAREA") return;
+
+      if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+        e.preventDefault();
+        navigate(-1);
+      } else if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+        e.preventDefault();
+        navigate(1);
+      }
+    });
+
+    // ---- Util ----
+    function getDownloadUri(file) {
+      if (file.data_uri) return file.data_uri;
+      if (file.data_b64) return "data:application/octet-stream;base64," + file.data_b64;
+      if (file.type === "text") return "data:text/plain;charset=utf-8," + encodeURIComponent(file.content);
+      return "#";
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement("div");
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // ---- View switching ----
+    function switchView(view) {
+      document.querySelectorAll(".view-tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".view-panel").forEach(p => p.classList.remove("active"));
+      document.querySelector(`[onclick="switchView('${view}')"]`).classList.add("active");
+      document.getElementById("panel-" + view).classList.add("active");
+    }
+
+    // ---- Benchmark rendering ----
+    function renderBenchmark() {
+      const data = EMBEDDED_DATA.benchmark;
+      if (!data) return;
+
+      // Show the tabs
+      document.getElementById("view-tabs").style.display = "flex";
+
+      const container = document.getElementById("benchmark-content");
+      const summary = data.run_summary || {};
+      const metadata = data.metadata || {};
+      const notes = data.notes || [];
+
+      let html = "";
+
+      // Header
+      html += "<h2 style='font-family: Poppins, sans-serif; margin-bottom: 0.5rem;'>Benchmark Results</h2>";
+      html += "<p style='color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.25rem;'>";
+      if (metadata.skill_name) html += "<strong>" + escapeHtml(metadata.skill_name) + "</strong> &mdash; ";
+      if (metadata.timestamp) html += metadata.timestamp + " &mdash; ";
+      if (metadata.evals_run) html += "Evals: " + metadata.evals_run.join(", ") + " &mdash; ";
+      html += (metadata.runs_per_configuration || "?") + " runs per configuration";
+      html += "</p>";
+
+      // Summary table
+      html += '<table class="benchmark-table">';
+
+      function fmtStat(stat, pct) {
+        if (!stat) return "—";
+        const suffix = pct ? "%" : "";
+        const m = pct ? (stat.mean * 100).toFixed(0) : stat.mean.toFixed(1);
+        const s = pct ? (stat.stddev * 100).toFixed(0) : stat.stddev.toFixed(1);
+        return m + suffix + " ± " + s + suffix;
+      }
+
+      function deltaClass(val) {
+        if (!val) return "";
+        const n = parseFloat(val);
+        if (n > 0) return "benchmark-delta-positive";
+        if (n < 0) return "benchmark-delta-negative";
+        return "";
+      }
+
+      // Discover config names dynamically (everything except "delta")
+      const configs = Object.keys(summary).filter(k => k !== "delta");
+      const configA = configs[0] || "config_a";
+      const configB = configs[1] || "config_b";
+      const labelA = configA.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      const labelB = configB.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      const a = summary[configA] || {};
+      const b = summary[configB] || {};
+      const delta = summary.delta || {};
+
+      html += "<thead><tr><th>Metric</th><th>" + escapeHtml(labelA) + "</th><th>" + escapeHtml(labelB) + "</th><th>Delta</th></tr></thead>";
+      html += "<tbody>";
+
+      html += "<tr><td><strong>Pass Rate</strong></td>";
+      html += "<td>" + fmtStat(a.pass_rate, true) + "</td>";
+      html += "<td>" + fmtStat(b.pass_rate, true) + "</td>";
+      html += '<td class="' + deltaClass(delta.pass_rate) + '">' + (delta.pass_rate || "—") + "</td></tr>";
+
+      // Time (only show row if data exists)
+      if (a.time_seconds || b.time_seconds) {
+        html += "<tr><td><strong>Time (s)</strong></td>";
+        html += "<td>" + fmtStat(a.time_seconds, false) + "</td>";
+        html += "<td>" + fmtStat(b.time_seconds, false) + "</td>";
+        html += '<td class="' + deltaClass(delta.time_seconds) + '">' + (delta.time_seconds ? delta.time_seconds + "s" : "—") + "</td></tr>";
+      }
+
+      // Tokens (only show row if data exists)
+      if (a.tokens || b.tokens) {
+        html += "<tr><td><strong>Tokens</strong></td>";
+        html += "<td>" + fmtStat(a.tokens, false) + "</td>";
+        html += "<td>" + fmtStat(b.tokens, false) + "</td>";
+        html += '<td class="' + deltaClass(delta.tokens) + '">' + (delta.tokens || "—") + "</td></tr>";
+      }
+
+      html += "</tbody></table>";
+
+      // Per-eval breakdown (if runs data available)
+      const runs = data.runs || [];
+      if (runs.length > 0) {
+        const evalIds = [...new Set(runs.map(r => r.eval_id))].sort((a, b) => a - b);
+
+        html += "<h3 style='font-family: Poppins, sans-serif; margin-bottom: 0.75rem;'>Per-Eval Breakdown</h3>";
+
+        const hasTime = runs.some(r => r.result && r.result.time_seconds != null);
+        const hasErrors = runs.some(r => r.result && r.result.errors > 0);
+
+        for (const evalId of evalIds) {
+          const evalRuns = runs.filter(r => r.eval_id === evalId);
+          const evalName = evalRuns[0] && evalRuns[0].eval_name ? evalRuns[0].eval_name : "Eval " + evalId;
+
+          html += "<h4 style='font-family: Poppins, sans-serif; margin: 1rem 0 0.5rem; color: var(--text);'>" + escapeHtml(evalName) + "</h4>";
+          html += '<table class="benchmark-table">';
+          html += "<thead><tr><th>Config</th><th>Run</th><th>Pass Rate</th>";
+          if (hasTime) html += "<th>Time (s)</th>";
+          if (hasErrors) html += "<th>Crashes During Execution</th>";
+          html += "</tr></thead>";
+          html += "<tbody>";
+
+          // Group by config and render with average rows
+          const configGroups = [...new Set(evalRuns.map(r => r.configuration))];
+          for (let ci = 0; ci < configGroups.length; ci++) {
+            const config = configGroups[ci];
+            const configRuns = evalRuns.filter(r => r.configuration === config);
+            if (configRuns.length === 0) continue;
+
+            const rowClass = ci === 0 ? "benchmark-row-with" : "benchmark-row-without";
+            const configLabel = config.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+
+            for (const run of configRuns) {
+              const r = run.result || {};
+              const prClass = r.pass_rate >= 0.8 ? "benchmark-delta-positive" : r.pass_rate < 0.5 ? "benchmark-delta-negative" : "";
+              html += '<tr class="' + rowClass + '">';
+              html += "<td>" + configLabel + "</td>";
+              html += "<td>" + run.run_number + "</td>";
+              html += '<td class="' + prClass + '">' + ((r.pass_rate || 0) * 100).toFixed(0) + "% (" + (r.passed || 0) + "/" + (r.total || 0) + ")</td>";
+              if (hasTime) html += "<td>" + (r.time_seconds != null ? r.time_seconds.toFixed(1) : "—") + "</td>";
+              if (hasErrors) html += "<td>" + (r.errors || 0) + "</td>";
+              html += "</tr>";
+            }
+
+            // Average row
+            const rates = configRuns.map(r => (r.result || {}).pass_rate || 0);
+            const avgRate = rates.reduce((a, b) => a + b, 0) / rates.length;
+            const avgPrClass = avgRate >= 0.8 ? "benchmark-delta-positive" : avgRate < 0.5 ? "benchmark-delta-negative" : "";
+            html += '<tr class="benchmark-row-avg ' + rowClass + '">';
+            html += "<td>" + configLabel + "</td>";
+            html += "<td>Avg</td>";
+            html += '<td class="' + avgPrClass + '">' + (avgRate * 100).toFixed(0) + "%</td>";
+            if (hasTime) {
+              const times = configRuns.map(r => (r.result || {}).time_seconds).filter(t => t != null);
+              html += "<td>" + (times.length ? (times.reduce((a, b) => a + b, 0) / times.length).toFixed(1) : "—") + "</td>";
+            }
+            if (hasErrors) html += "<td></td>";
+            html += "</tr>";
+          }
+          html += "</tbody></table>";
+
+          // Per-assertion detail for this eval
+          const runsWithExpectations = {};
+          for (const config of configGroups) {
+            runsWithExpectations[config] = evalRuns.filter(r => r.configuration === config && r.expectations && r.expectations.length > 0);
+          }
+          const hasAnyExpectations = Object.values(runsWithExpectations).some(runs => runs.length > 0);
+          if (hasAnyExpectations) {
+            // Collect all unique assertion texts across all configs
+            const allAssertions = [];
+            const seen = new Set();
+            for (const config of configGroups) {
+              for (const run of runsWithExpectations[config]) {
+                for (const exp of (run.expectations || [])) {
+                  if (!seen.has(exp.text)) {
+                    seen.add(exp.text);
+                    allAssertions.push(exp.text);
+                  }
+                }
+              }
+            }
+
+            html += '<table class="benchmark-table" style="margin-top: 0.5rem;">';
+            html += "<thead><tr><th>Assertion</th>";
+            for (const config of configGroups) {
+              const label = config.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+              html += "<th>" + escapeHtml(label) + "</th>";
+            }
+            html += "</tr></thead><tbody>";
+
+            for (const assertionText of allAssertions) {
+              html += "<tr><td>" + escapeHtml(assertionText) + "</td>";
+
+              for (const config of configGroups) {
+                html += "<td>";
+                for (const run of runsWithExpectations[config]) {
+                  const exp = (run.expectations || []).find(e => e.text === assertionText);
+                  if (exp) {
+                    const cls = exp.passed ? "benchmark-delta-positive" : "benchmark-delta-negative";
+                    const icon = exp.passed ? "\u2713" : "\u2717";
+                    html += '<span class="' + cls + '" title="Run ' + run.run_number + ': ' + escapeHtml(exp.evidence || "") + '">' + icon + "</span> ";
+                  } else {
+                    html += "— ";
+                  }
+                }
+                html += "</td>";
+              }
+              html += "</tr>";
+            }
+            html += "</tbody></table>";
+          }
+        }
+      }
+
+      // Notes
+      if (notes.length > 0) {
+        html += '<div class="benchmark-notes">';
+        html += "<h3>Analysis Notes</h3>";
+        html += "<ul>";
+        for (const note of notes) {
+          html += "<li>" + escapeHtml(note) + "</li>";
+        }
+        html += "</ul></div>";
+      }
+
+      container.innerHTML = html;
+    }
+
+    // ---- Start ----
+    init();
+    renderBenchmark();
+  </script>
+</body>
+</html>

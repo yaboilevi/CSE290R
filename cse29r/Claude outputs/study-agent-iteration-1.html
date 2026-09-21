@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eval Review</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600&family=Lora:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
+  <style>
+    :root {
+      --bg: #faf9f5;
+      --surface: #ffffff;
+      --border: #e8e6dc;
+      --text: #141413;
+      --text-muted: #b0aea5;
+      --accent: #d97757;
+      --accent-hover: #c4613f;
+      --green: #788c5d;
+      --green-bg: #eef2e8;
+      --red: #c44;
+      --red-bg: #fceaea;
+      --header-bg: #141413;
+      --header-text: #faf9f5;
+      --radius: 6px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Lora', Georgia, serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ---- Header ---- */
+    .header {
+      background: var(--header-bg);
+      color: var(--header-text);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .header h1 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    .header .instructions {
+      font-size: 0.8rem;
+      opacity: 0.7;
+      margin-top: 0.25rem;
+    }
+    .header .progress {
+      font-size: 0.875rem;
+      opacity: 0.8;
+      text-align: right;
+    }
+
+    /* ---- Main content ---- */
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    /* ---- Sections ---- */
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      flex-shrink: 0;
+    }
+    .section-header {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.75rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+    }
+    .section-body {
+      padding: 1rem;
+    }
+
+    /* ---- Config badge ---- */
+    .config-badge {
+      display: inline-block;
+      padding: 0.2rem 0.625rem;
+      border-radius: 9999px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-left: 0.75rem;
+      vertical-align: middle;
+    }
+    .config-badge.config-primary {
+      background: rgba(33, 150, 243, 0.12);
+      color: #1976d2;
+    }
+    .config-badge.config-baseline {
+      background: rgba(255, 193, 7, 0.15);
+      color: #f57f17;
+    }
+
+    /* ---- Prompt ---- */
+    .prompt-text {
+      white-space: pre-wrap;
+      font-size: 0.9375rem;
+      line-height: 1.6;
+    }
+
+    /* ---- Outputs ---- */
+    .output-file {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .output-file + .output-file {
+      margin-top: 1rem;
+    }
+    .output-file-header {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .output-file-header .dl-btn {
+      font-size: 0.7rem;
+      color: var(--accent);
+      text-decoration: none;
+      cursor: pointer;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-weight: 500;
+      opacity: 0.8;
+    }
+    .output-file-header .dl-btn:hover {
+      opacity: 1;
+      text-decoration: underline;
+    }
+    .output-file-content {
+      padding: 0.75rem;
+      overflow-x: auto;
+    }
+    .output-file-content pre {
+      font-size: 0.8125rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+    }
+    .output-file-content img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 4px;
+    }
+    .output-file-content iframe {
+      width: 100%;
+      height: 600px;
+      border: none;
+    }
+    .output-file-content table {
+      border-collapse: collapse;
+      font-size: 0.8125rem;
+      width: 100%;
+    }
+    .output-file-content table td,
+    .output-file-content table th {
+      border: 1px solid var(--border);
+      padding: 0.375rem 0.5rem;
+      text-align: left;
+    }
+    .output-file-content table th {
+      background: var(--bg);
+      font-weight: 600;
+    }
+    .output-file-content .download-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 0.875rem;
+      cursor: pointer;
+    }
+    .output-file-content .download-link:hover {
+      background: var(--border);
+    }
+    .empty-state {
+      color: var(--text-muted);
+      font-style: italic;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    /* ---- Feedback ---- */
+    .prev-feedback {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.625rem 0.75rem;
+      margin-top: 0.75rem;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .prev-feedback-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.25rem;
+      color: var(--text-muted);
+    }
+    .feedback-textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 0.9375rem;
+      line-height: 1.5;
+      resize: vertical;
+      color: var(--text);
+    }
+    .feedback-textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    .feedback-status {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+      min-height: 1.1em;
+    }
+
+    /* ---- Grades (collapsible) ---- */
+    .grades-toggle {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .grades-toggle:hover {
+      color: var(--accent);
+    }
+    .grades-toggle .arrow {
+      margin-right: 0.5rem;
+      transition: transform 0.15s;
+      font-size: 0.75rem;
+    }
+    .grades-toggle .arrow.open {
+      transform: rotate(90deg);
+    }
+    .grades-content {
+      display: none;
+      margin-top: 0.75rem;
+    }
+    .grades-content.open {
+      display: block;
+    }
+    .grades-summary {
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .grade-badge {
+      display: inline-block;
+      padding: 0.125rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .grade-pass { background: var(--green-bg); color: var(--green); }
+    .grade-fail { background: var(--red-bg); color: var(--red); }
+    .assertion-list {
+      list-style: none;
+    }
+    .assertion-item {
+      padding: 0.625rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.8125rem;
+    }
+    .assertion-item:last-child { border-bottom: none; }
+    .assertion-status {
+      font-weight: 600;
+      margin-right: 0.5rem;
+    }
+    .assertion-status.pass { color: var(--green); }
+    .assertion-status.fail { color: var(--red); }
+    .assertion-evidence {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      margin-top: 0.25rem;
+      padding-left: 1.5rem;
+    }
+
+    /* ---- View tabs ---- */
+    .view-tabs {
+      display: flex;
+      gap: 0;
+      padding: 0 2rem;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .view-tab {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.625rem 1.25rem;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .view-tab:hover { color: var(--text); }
+    .view-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .view-panel { display: none; }
+    .view-panel.active { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+
+    /* ---- Benchmark view ---- */
+    .benchmark-view {
+      padding: 1.5rem 2rem;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .benchmark-table {
+      border-collapse: collapse;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.8125rem;
+      width: 100%;
+      margin-bottom: 1.5rem;
+    }
+    .benchmark-table th, .benchmark-table td {
+      padding: 0.625rem 0.75rem;
+      text-align: left;
+      border: 1px solid var(--border);
+    }
+    .benchmark-table th {
+      font-family: 'Poppins', sans-serif;
+      background: var(--header-bg);
+      color: var(--header-text);
+      font-weight: 500;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .benchmark-table tr:hover { background: var(--bg); }
+    .benchmark-table tr.benchmark-row-with { background: rgba(33, 150, 243, 0.06); }
+    .benchmark-table tr.benchmark-row-without { background: rgba(255, 193, 7, 0.06); }
+    .benchmark-table tr.benchmark-row-with:hover { background: rgba(33, 150, 243, 0.12); }
+    .benchmark-table tr.benchmark-row-without:hover { background: rgba(255, 193, 7, 0.12); }
+    .benchmark-table tr.benchmark-row-avg { font-weight: 600; border-top: 2px solid var(--border); }
+    .benchmark-table tr.benchmark-row-avg.benchmark-row-with { background: rgba(33, 150, 243, 0.12); }
+    .benchmark-table tr.benchmark-row-avg.benchmark-row-without { background: rgba(255, 193, 7, 0.12); }
+    .benchmark-delta-positive { color: var(--green); font-weight: 600; }
+    .benchmark-delta-negative { color: var(--red); font-weight: 600; }
+    .benchmark-notes {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+    }
+    .benchmark-notes h3 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+    }
+    .benchmark-notes ul {
+      list-style: disc;
+      padding-left: 1.25rem;
+    }
+    .benchmark-notes li {
+      font-size: 0.8125rem;
+      line-height: 1.6;
+      margin-bottom: 0.375rem;
+    }
+    .benchmark-empty {
+      color: var(--text-muted);
+      font-style: italic;
+      text-align: center;
+      padding: 3rem;
+    }
+
+    /* ---- Navigation ---- */
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+    .nav-btn {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.5rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text);
+      transition: all 0.15s;
+    }
+    .nav-btn:hover:not(:disabled) {
+      background: var(--bg);
+      border-color: var(--text-muted);
+    }
+    .nav-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .done-btn {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.5rem 1.5rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    .done-btn:hover {
+      background: var(--bg);
+      border-color: var(--text-muted);
+    }
+    .done-btn.ready {
+      border: none;
+      background: var(--accent);
+      color: white;
+      font-weight: 600;
+    }
+    .done-btn.ready:hover {
+      background: var(--accent-hover);
+    }
+    /* ---- Done overlay ---- */
+    .done-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+    }
+    .done-overlay.visible {
+      display: flex;
+    }
+    .done-card {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 2rem 3rem;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 500px;
+    }
+    .done-card h2 {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .done-card p {
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
+    }
+    .done-card .btn-row {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+    .done-card button {
+      padding: 0.5rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 0.875rem;
+    }
+    .done-card button:hover {
+      background: var(--bg);
+    }
+    /* ---- Toast ---- */
+    .toast {
+      position: fixed;
+      bottom: 5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--header-bg);
+      color: var(--header-text);
+      padding: 0.625rem 1.25rem;
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      z-index: 200;
+    }
+    .toast.visible {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" style="height:100vh; display:flex; flex-direction:column;">
+    <div class="header">
+      <div>
+        <h1>Eval Review: <span id="skill-name"></span></h1>
+        <div class="instructions">Review each output and leave feedback below. Navigate with arrow keys or buttons. When done, copy feedback and paste into Claude Code.</div>
+      </div>
+      <div class="progress" id="progress"></div>
+    </div>
+
+    <!-- View tabs (only shown when benchmark data exists) -->
+    <div class="view-tabs" id="view-tabs" style="display:none;">
+      <button class="view-tab active" onclick="switchView('outputs')">Outputs</button>
+      <button class="view-tab" onclick="switchView('benchmark')">Benchmark</button>
+    </div>
+
+    <!-- Outputs panel (qualitative review) -->
+    <div class="view-panel active" id="panel-outputs">
+    <div class="main">
+      <!-- Prompt -->
+      <div class="section">
+        <div class="section-header">Prompt <span class="config-badge" id="config-badge" style="display:none;"></span></div>
+        <div class="section-body">
+          <div class="prompt-text" id="prompt-text"></div>
+        </div>
+      </div>
+
+      <!-- Outputs -->
+      <div class="section">
+        <div class="section-header">Output</div>
+        <div class="section-body" id="outputs-body">
+          <div class="empty-state">No output files found</div>
+        </div>
+      </div>
+
+      <!-- Previous Output (collapsible) -->
+      <div class="section" id="prev-outputs-section" style="display:none;">
+        <div class="section-header">
+          <div class="grades-toggle" onclick="togglePrevOutputs()">
+            <span class="arrow" id="prev-outputs-arrow">&#9654;</span>
+            Previous Output
+          </div>
+        </div>
+        <div class="grades-content" id="prev-outputs-content"></div>
+      </div>
+
+      <!-- Grades (collapsible) -->
+      <div class="section" id="grades-section" style="display:none;">
+        <div class="section-header">
+          <div class="grades-toggle" onclick="toggleGrades()">
+            <span class="arrow" id="grades-arrow">&#9654;</span>
+            Formal Grades
+          </div>
+        </div>
+        <div class="grades-content" id="grades-content"></div>
+      </div>
+
+      <!-- Feedback -->
+      <div class="section">
+        <div class="section-header">Your Feedback</div>
+        <div class="section-body">
+          <textarea
+            class="feedback-textarea"
+            id="feedback"
+            placeholder="What do you think of this output? Any issues, suggestions, or things that look great?"
+          ></textarea>
+          <div class="feedback-status" id="feedback-status"></div>
+          <div class="prev-feedback" id="prev-feedback" style="display:none;">
+            <div class="prev-feedback-label">Previous feedback</div>
+            <div id="prev-feedback-text"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav" id="outputs-nav">
+      <button class="nav-btn" id="prev-btn" onclick="navigate(-1)">&#8592; Previous</button>
+      <button class="done-btn" id="done-btn" onclick="showDoneDialog()">Submit All Reviews</button>
+      <button class="nav-btn" id="next-btn" onclick="navigate(1)">Next &#8594;</button>
+    </div>
+    </div><!-- end panel-outputs -->
+
+    <!-- Benchmark panel (quantitative stats) -->
+    <div class="view-panel" id="panel-benchmark">
+      <div class="benchmark-view" id="benchmark-content">
+        <div class="benchmark-empty">No benchmark data available. Run a benchmark to see quantitative results here.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Done overlay -->
+  <div class="done-overlay" id="done-overlay">
+    <div class="done-card">
+      <h2>Review Complete</h2>
+      <p>Your feedback has been saved. Go back to your Claude Code session and tell Claude you're done reviewing.</p>
+      <div class="btn-row">
+        <button onclick="closeDoneDialog()">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ---- Embedded data (injected by generate_review.py) ----
+    const EMBEDDED_DATA = {"skill_name": "study-agent", "runs": [{"id": "eval-plain-request-with_skill", "prompt": "Can you look at my Canvas and put together a study plan for this week? I've got CSE 290R, STAT 131, and ENGR 100.", "eval_id": 0, "outputs": [{"name": "study_plan.md", "type": "text", "content": "# Your Study Plan \u2014 Week of Sept 16-22\n\nPulled from Canvas across CSE 290R, STAT 131, and ENGR 100. Quick heads up before the plan: **ENGR 100 Quiz 3** (15 pts) was due yesterday (9/15) and is showing as missing. I didn't schedule work for it \u2014 check with your instructor on whether a late submission is still possible, since that's your call to make. Two items are already done and need nothing from you: STAT 131 Homework 5 (submitted, 18/20) and the CSE 290R Peer Review for RR3 (submitted, 5/5).\n\nHere's what's actually driving the plan: **STAT 131's Midterm is worth 50% of that course's grade** (heaviest single group across all three classes), and **CSE 290R's Problem Set 3 sits in a 40%-weighted group** with a substantial coding + writeup ask \u2014 those two get the most spread-out attention. Everything else is smaller but some of it is time-sensitive today/tomorrow.\n\n## Wednesday 9/16 (today)\n- **STAT 131 \u2014 Homework 6** (~1-1.5 hrs): Due tonight 11:59pm. Do this first, no flexibility here.\n- **CSE 290R \u2014 Post your Reading Response 4** (~30-45 min): Due tomorrow night, but it requires replying to 2 classmates \u2014 and they can't reply to you (or you to them) until posts exist. Get yours up today.\n- **CSE 290R \u2014 Skim Problem Set 3 prompt, sketch your approach** (~30 min): It's the heaviest item this week (4-6 page writeup + two algorithms to implement), due Saturday. A head start now keeps Thu/Fri from being a scramble.\n\n## Thursday 9/17\n- **CSE 290R \u2014 Reply to 2 classmates on Reading Response 4** (~30 min): Due tonight 11:59pm.\n- **CSE 290R \u2014 Problem Set 3: implement algorithm 1** (~2 hrs, rough estimate).\n- **STAT 131 \u2014 Midterm review, chapters 1-3** (~1 hr): Starting exam prep now, several days out \u2014 it's a 90-minute *timed* exam you take in one sitting, so the prep is what gets spread out, not the exam itself.\n\n## Friday 9/18\n- **CSE 290R \u2014 Problem Set 3: implement algorithm 2 + start the writeup** (~2 hrs).\n- **STAT 131 \u2014 Midterm review, chapters 4-6** (~1 hr).\n\n## Saturday 9/19\n- **CSE 290R \u2014 Finish Problem Set 3 writeup, proofread, submit** (~1.5-2 hrs): Due tonight 11:59pm \u2014 aim to wrap up by early evening rather than right at the deadline.\n- **ENGR 100 \u2014 Start Lab Report 2: organize data tables, draft results section** (~1.5 hrs): Due Sunday night; starting today avoids stacking it same-day with nothing else going on.\n\n## Sunday 9/20\n- **ENGR 100 \u2014 Finish Lab Report 2, submit** (~1-1.5 hrs): Due tonight 11:59pm.\n- **STAT 131 \u2014 Practice problems / mixed review** (~1.5 hrs): Exam window closes Tuesday 8pm.\n\n## Monday 9/21\n- **STAT 131 \u2014 Final review pass** (~1 hr): Quick pass on formulas/concepts you're least sure of.\n- **STAT 131 \u2014 Take the Midterm Exam** (90 min, one sitting): Do it today rather than waiting for Tuesday's close \u2014 since it's timed and can't be split up, taking it a day early gives you a buffer if anything technical goes wrong before the hard 8pm Tuesday deadline.\n\n## Tuesday 9/22 (buffer)\n- Nothing new scheduled \u2014 this is slack in case Monday's exam slot gets bumped, or anything above ran long. Hard deadline: Midterm closes 8:00pm.\n\n---\n\n**A note on estimates:** effort numbers above are rough (marked where relevant) since Canvas doesn't tell us exactly how long something takes \u2014 treat them as ballpark, not a stopwatch.\n"}], "grading": {"expectations": [{"text": "Identifies STAT 131 Homework 6 (due today, 9/16) as the most time-urgent item and schedules it today", "passed": true, "evidence": "Wed 9/16 block leads with 'STAT 131 \u2014 Homework 6 ... Do this first, no flexibility here.'"}, {"text": "Flags ENGR 100 Quiz 3 as overdue/missing rather than omitting it or treating it as a normal upcoming task", "passed": true, "evidence": "Opening paragraph calls it out by name as due yesterday and missing, tells user to check with instructor."}, {"text": "Does not list STAT 131 Homework 5 or the CSE 290R 'Peer Review for RR3' as action items, since both are already submitted and graded", "passed": true, "evidence": "Both mentioned explicitly as 'already done and need nothing from you' with their scores, not scheduled anywhere."}, {"text": "Gives Problem Set 3 (CSE 290R) more than one work session spread across multiple days before its Saturday due date, rather than a single session the night before", "passed": true, "evidence": "Sketch approach (Wed), implement algo 1 (Thu), algo 2 + writeup (Fri), finish/submit (Sat) \u2014 4 sessions across 4 days."}, {"text": "Notes or schedules the Reading Response 4 initial post early enough (well before Thursday) to allow the required peer replies before the deadline", "passed": true, "evidence": "Posted Wednesday with explicit reasoning about peer-reply dependency; replies scheduled Thursday."}, {"text": "Treats the STAT 131 midterm exam as high priority (dedicated review/study time before 9/22) despite it having the latest due date of any item, citing its point value/weight or exam status as the reason", "passed": true, "evidence": "Review sessions Thu (ch1-3), Fri (ch4-6), Sun (practice), Mon (final review + take exam); intro explicitly cites the 50%-weight/200-pt reasoning."}, {"text": "Presents the plan broken out by day (not just a flat prioritized list)", "passed": true, "evidence": "Explicit Wednesday-through-Tuesday day headers."}], "summary": {"passed": 7, "failed": 0, "total": 7, "pass_rate": 1.0}}}, {"id": "eval-plain-request-without_skill", "prompt": "Can you look at my Canvas and put together a study plan for this week? I've got CSE 290R, STAT 131, and ENGR 100.", "eval_id": 0, "outputs": [{"name": "study_plan.md", "type": "text", "content": "# Your Study Plan: Week of Sept 16\u201323\n\nHere's what's on your plate across CSE 290R, STAT 131, and ENGR 100, organized by urgency and how much each item counts toward your grade.\n\n## First, one thing needs your attention immediately\n\n**ENGR 100 \u2013 Quiz 3** was due yesterday (9/15) and is showing as **missing**. Before anything else today, email your ENGR 100 instructor/TA to ask about late submission, and try submitting it if it's still open on Canvas. It's only 15 points, but \"missing\" flags are easy to fix now and painful to fix later.\n\n## Everything due this week, by deadline\n\n| Due | Course | Item | Points | Status/Notes |\n|---|---|---|---|---|\n| Today 9/16, 11:59pm | STAT 131 | Homework 6 (hypothesis testing) | 20 | Not started \u2014 due tonight |\n| Tomorrow 9/17, 11:59pm | CSE 290R | Reading Response 4 + 2 peer replies | 10 | Needs classmates to post first \u2014 start early |\n| Sat 9/19, 11:59pm | CSE 290R | Problem Set 3 (2 algorithms, code + 4\u20136 pg writeup) | 100 | Heaviest workload item this week |\n| Sun 9/20, 11:59pm | ENGR 100 | Lab Report 2 (circuits lab, ~3 pages + data) | 50 | |\n| Tue 9/22, 8:00pm | STAT 131 | Midterm Exam \u2014 timed, 90 min, ch. 1\u20136, one attempt | 200 | Highest stakes item this week |\n\nAlready done and graded \u2014 no action needed: STAT 131 Homework 5 (18/20) and CSE 290R Peer Review for RR3 (5/5). Nice work.\n\n## Why this order\n\n- **STAT 131's midterm is worth 50% of your grade in that class** and covers 6 chapters \u2014 it needs the most lead time, so review starts now rather than the night before.\n- **CSE 290R Problem Set 3** is 100 points and explicitly \"substantial coding + writeup\" \u2014 it needs multiple work sessions, not a single sitting.\n- **Reading Response 4 has a hidden time trap**: you can't finish it in one sitting because your reply requires two classmates to have posted first. Post your own response ASAP so replies aren't a last-minute scramble tomorrow night.\n- Lab Report 2 and Quiz 3 are more contained tasks, so they're slotted around the bigger items.\n\n## Day-by-day plan\n\n**Wed 9/16 (today)**\n- Resolve the ENGR 100 Quiz 3 situation (email instructor / attempt late submission)\n- Finish and submit STAT 131 Homework 6 (due tonight)\n- Post your initial CSE 290R Reading Response 4 (unlocks tomorrow's peer replies)\n\n**Thu 9/17**\n- Reply to 2 classmates' posts to finish Reading Response 4 (due tonight, 11:59pm)\n- Begin CSE 290R Problem Set 3: read the prompt fully, sketch your approach to both algorithms\n- Start STAT 131 exam review \u2014 skim chapters 1\u20133, list weak spots\n\n**Fri 9/18**\n- Code the first algorithm for Problem Set 3\n- STAT 131 review \u2014 chapters 4\u20136, work practice problems\n\n**Sat 9/19**\n- Finish coding + write up Problem Set 3, submit by 11:59pm\n- Start ENGR 100 Lab Report 2: organize your circuits lab data and outline\n\n**Sun 9/20**\n- Write and submit ENGR 100 Lab Report 2 (due 11:59pm)\n- Light STAT 131 review \u2014 redo any practice problems you missed earlier\n\n**Mon 9/21**\n- Full STAT 131 review day: timed practice problems under 90-minute conditions to simulate the real exam\n- Identify and shore up your 2\u20133 weakest topics from chapters 1\u20136\n\n**Tue 9/22**\n- Quick morning review pass (formulas/definitions only \u2014 avoid cramming new material)\n- Block off an uninterrupted 90 minutes well before 8:00pm to take the Midterm Exam in one sitting\n\n**Wed 9/23**\n- Buffer/catch-up day \u2014 check Canvas for the following week's assignments and get ahead if you have time\n\nGood luck this week \u2014 the Quiz 3 fix and the STAT 131 midterm review are the two things worth starting today.\n"}], "grading": {"expectations": [{"text": "Identifies STAT 131 Homework 6 (due today, 9/16) as the most time-urgent item and schedules it today", "passed": true, "evidence": "Table + Wed day-plan both lead with HW6 due tonight."}, {"text": "Flags ENGR 100 Quiz 3 as overdue/missing rather than omitting it or treating it as a normal upcoming task", "passed": true, "evidence": "Dedicated 'First, one thing needs your attention immediately' section."}, {"text": "Does not list STAT 131 Homework 5 or the CSE 290R 'Peer Review for RR3' as action items, since both are already submitted and graded", "passed": true, "evidence": "Explicitly listed as 'Already done and graded \u2014 no action needed' with scores."}, {"text": "Gives Problem Set 3 (CSE 290R) more than one work session spread across multiple days before its Saturday due date, rather than a single session the night before", "passed": true, "evidence": "Sketch approach (Thu), code algo 1 (Fri), finish+writeup+submit (Sat) \u2014 3 sessions across 3 days."}, {"text": "Notes or schedules the Reading Response 4 initial post early enough (well before Thursday) to allow the required peer replies before the deadline", "passed": true, "evidence": "Posted Wed, replies Thu, with an explicit 'hidden time trap' callout explaining why."}, {"text": "Treats the STAT 131 midterm exam as high priority (dedicated review/study time before 9/22) despite it having the latest due date of any item, citing its point value/weight or exam status as the reason", "passed": true, "evidence": "Review sessions Thu, Fri, Sun, Mon (full review day), explicit 50%-weight reasoning throughout."}, {"text": "Presents the plan broken out by day (not just a flat prioritized list)", "passed": true, "evidence": "Explicit Wed-Wed day headers, plus a summary table (belt and suspenders)."}], "summary": {"passed": 7, "failed": 0, "total": 7, "pass_rate": 1.0}}}, {"id": "eval-limited-availability-with_skill", "prompt": "I only have evenings free this week to study, and Thursday is completely booked (can't do anything that day). Can you build me a study plan for CSE 290R, STAT 131, and ENGR 100 based on what's on my Canvas?", "eval_id": 1, "outputs": [{"name": "study_plan.md", "type": "text", "content": "# Your Study Plan \u2014 Week of Sep 16\u201322\n\nBuilt around your constraints: **evenings only, every day**, and **Thursday is completely off-limits**. I pulled what's due this week (and a couple of edges just outside it) across CSE 290R, STAT 131, and ENGR 100, dropped anything already submitted/graded, and laid out what's left.\n\nOne heads-up before the day-by-day: **Reading Response 4 (CSE 290R) is due Thursday night, but you can't work Thursday.** That means the whole thing \u2014 your own post *and* your two peer replies \u2014 has to happen tonight (Wed) instead of spread out. See the note under Wednesday.\n\nAlso: **ENGR 100 Quiz 3 is already past due and marked missing** (was due Monday 9/15). I didn't schedule it into the plan since it needs a decision from you \u2014 see the flag at the bottom.\n\n---\n\n## Wednesday 9/16 (tonight) \u2014 busiest evening, two things are due today/tomorrow\n- **STAT 131 \u2014 Homework 6** (~1\u20131.5 hrs): due tonight at 11:59pm. Problem set on hypothesis testing. No flexibility here \u2014 do this first or early.\n- **CSE 290R \u2014 Reading Response 4, post + peer replies** (~45 min\u20131 hr total): due tomorrow night, but since Thursday is blocked for you, treat this as **due tonight**. Post your own response *as early in the evening as you can* so classmates have time to respond, then circle back later tonight to reply to 2 classmates. If nobody's posted yet when you check back, reply to whatever's up even if it's not much \u2014 don't let this slip to \"tomorrow,\" there is no tomorrow available for it.\n\n*Yes, that's a full evening \u2014 that's intentional, since tomorrow's off the table.*\n\n## Thursday 9/17 \u2014 blocked, nothing scheduled\nNothing due today needs your time, since RR4 (originally due tonight) was moved to Wednesday above.\n\n## Friday 9/18\n- **CSE 290R \u2014 Problem Set 3, session 1** (~2 hrs): implement + start analyzing the first algorithm. This is your biggest item this week (100 pts, in the Problem Sets group \u2014 40% of your CSE 290R grade) and due Saturday night, so it needs a real head start rather than one long push tomorrow.\n- **ENGR 100 \u2014 Lab Report 2, quick start** (~30\u201345 min): organize your data tables and rough out the report structure. Due Sunday \u2014 getting the skeleton down now makes Sunday's session much shorter.\n\n## Saturday 9/19\n- **CSE 290R \u2014 Problem Set 3, session 2 (finish + submit)** (~2\u20132.5 hrs): second algorithm, write-up (~4\u20136 pages), submit. Due tonight at 11:59pm \u2014 aim to finish with some buffer rather than at 11:55.\n\n## Sunday 9/20\n- **ENGR 100 \u2014 Lab Report 2, finish + submit** (~1.5 hrs): write up the circuits lab results (~3 pages + data tables), submit. Due tonight at 11:59pm.\n\n## Monday 9/21\n- **STAT 131 \u2014 Midterm Exam, review + take it** (~30 min review + 90 min timed exam \u2248 2 hrs): this is a one-attempt, 90-minute timed exam (200 pts, 50% of your STAT 131 grade \u2014 the single highest-stakes thing this week), technically due Tuesday. I'm scheduling it **tonight instead of Tuesday** on purpose: it can't be chunked across sessions like a paper, and doing it a day early gives you a buffer in case of a time-zone mix-up on the exact close time or any last-minute snag.\n\n## Tuesday 9/22\n- Light/open evening \u2014 buffer in case Monday's exam session needs to slide, or in case any of the above ran long. If everything above is done, this is a good night to peek at what's coming next week.\n\n---\n\n## Flag: ENGR 100 Quiz 3 \u2014 missing, past due\nThis was due Monday 9/15 and Canvas shows it as **missing** (not submitted). I didn't put it into the schedule above because whether it's worth doing depends on your instructor's late policy, which I don't have visibility into. Worth a quick email/syllabus check \u2014 if late submissions are accepted, it's a short quiz (15 pts) and could slot into any evening above in under 20 minutes.\n\n## Notes on the estimates\n- Time estimates are rough, especially Problem Set 3's write-up \u2014 \"substantial coding + 4\u20136 page writeup\" can run long depending on how the algorithms behave; treat 2+2.5 hrs as a floor, not a promise.\n- I skipped Homework 5 (STAT 131) and the RR3 peer review (CSE 290R) \u2014 both already submitted and graded, nothing left to do there.\n"}], "grading": {"expectations": [{"text": "Schedules zero tasks on Thursday, honoring the stated unavailability", "passed": true, "evidence": "'## Thursday 9/17 \u2014 blocked, nothing scheduled' \u2014 the RR4 item that would have landed Thursday was moved entirely into Wednesday instead."}, {"text": "Places work sessions in evening time slots rather than daytime/morning blocks", "passed": true, "evidence": "All sessions framed as 'tonight'/evening; no daytime blocks scheduled."}, {"text": "Still surfaces STAT 131 Homework 6 (due today) with a plan for when to do it despite the constrained schedule", "passed": true, "evidence": "Leads Wednesday's block: 'due tonight ... do this first or early.'"}, {"text": "Still flags ENGR 100 Quiz 3 as overdue/missing", "passed": true, "evidence": "Dedicated 'Flag: ENGR 100 Quiz 3 \u2014 missing, past due' section."}, {"text": "Does not schedule the two already-graded items (STAT 131 HW5, CSE 290R Peer Review for RR3) as action items", "passed": true, "evidence": "Explicitly noted in closing notes as already graded, not scheduled."}], "summary": {"passed": 5, "failed": 0, "total": 5, "pass_rate": 1.0}}}, {"id": "eval-limited-availability-without_skill", "prompt": "I only have evenings free this week to study, and Thursday is completely booked (can't do anything that day). Can you build me a study plan for CSE 290R, STAT 131, and ENGR 100 based on what's on my Canvas?", "eval_id": 1, "outputs": [{"name": "study_plan.md", "type": "text", "content": "# Your Study Plan \u2014 CSE 290R, STAT 131, ENGR 100\n### Week of Wed Sep 16 \u2013 Wed Sep 23, 2026\n\nBuilt around your constraints: **evenings only**, and **Thursday is fully blocked off**.\n\n---\n\n## Heads up first \u2014 two urgent items\n\n1. **STAT 131 \u2013 Homework 6** is due **tonight (Wed 9/16) at 11:59pm**. This has to happen before anything else this evening.\n2. **ENGR 100 \u2013 Quiz 3** was due yesterday (9/15) and is showing as **missing**. It's outside the \"next 7 days\" window, but since it's unsubmitted, send your instructor a quick email tonight asking about a late submission/make-up \u2014 don't let it sit.\n\n---\n\n## The Thursday problem (please read)\n\n**CSE 290R \u2013 Reading Response 4** is due **Thursday 9/17 at 11:59pm**, and it has two parts: (1) post your own response, and (2) reply to at least 2 classmates \u2014 which requires classmates to have posted *first*. Since Thursday is completely off-limits for you, there's no clean evening slot to do the peer-reply half on the day it's due.\n\n**How I've routed around it:**\n- Post your own response **Wednesday evening** (tonight), as early as possible, so classmates have the maximum time to see and reply to it, and so you're first in line to reply to whoever else posts early.\n- Realistically, you'll need a **5\u201310 minute check-in sometime Thursday** (before your day fills up, or during a gap \u2014 even from your phone) to post 2 peer replies before the 11:59pm deadline. I know you said Thursday is fully booked \u2014 if that's truly zero minutes available, the fallback is to post your replies **first thing Friday morning** and flag to your instructor that you completed it slightly late due to the discussion-reply dependency. That's a judgment call only you can make, but I wanted to surface it rather than pretend the conflict doesn't exist.\n\n---\n\n## Day-by-day evening plan\n\n### Wed 9/16 (tonight)\n- **STAT 131:** Finish and submit **Homework 6** (due 11:59pm) \u2014 top priority, non-negotiable tonight.\n- **CSE 290R:** Post your initial **Reading Response 4** entry (get it up early \u2014 see note above).\n- Quick 5-min email to ENGR 100 instructor about the missed Quiz 3.\n\n### Thu 9/17 \u2014 BLOCKED (no study time)\n- Only action, if any window opens up at all: post 2 peer replies for CSE 290R Reading Response 4 before 11:59pm (see conflict note above).\n\n### Fri 9/18\n- **CSE 290R:** Start **Problem Set 3** (due Sat 9/19, 11:59pm). This is substantial \u2014 implementing/analyzing two algorithms plus a 4\u20136 page writeup \u2014 so use tonight to get the coding done.\n- Confirm Thursday's RR4 peer replies actually went through; clean up if not.\n\n### Sat 9/19\n- **CSE 290R:** Finish and submit **Problem Set 3** (due tonight, 11:59pm).\n- If time remains, start reading/data review for **ENGR 100 Lab Report 2**.\n\n### Sun 9/20\n- **ENGR 100:** Finish and submit **Lab Report 2** (due tonight, 11:59pm) \u2014 write-up of the circuits lab, ~3 pages + data tables.\n- Begin **STAT 131 Midterm** review (Ch. 1\u20136) \u2014 this exam is worth 50% of your grade, the single heaviest item this week, so it deserves a real block of time starting now rather than cramming Tuesday.\n\n### Mon 9/21\n- **STAT 131:** Second midterm study session \u2014 work practice problems, focus on whatever chapters felt weakest Sunday.\n\n### Tue 9/22\n- **STAT 131 Midterm Exam** \u2014 this is a **timed 90-minute, one-attempt** exam due by **8:00pm** (not midnight). Start no later than 6:00\u20136:30pm so you're not rushed against the cutoff, in a spot where you won't be interrupted for the full 90 minutes.\n- Do a light 15\u201320 min warm-up review beforehand if your evening allows it.\n\n---\n\n## Why this ordering\n- Hard deadlines drove the sequence: HW6 (today) \u2192 RR4 (Thu) \u2192 Problem Set 3 (Sat) \u2192 Lab Report 2 (Sun) \u2192 Midterm (Tue).\n- STAT 131's midterm got two dedicated evenings (Sun + Mon) instead of one, since Exams are 50% of that course's grade \u2014 by far the highest-stakes item on your plate this week.\n- CSE 290R's Final Project (50% of that grade) and ENGR 100's Design Project (50%) aren't due this week, so they're intentionally left off this plan \u2014 worth a mention to yourself for next week's planning, but not competing for this week's limited evening hours.\n"}], "grading": {"expectations": [{"text": "Schedules zero tasks on Thursday, honoring the stated unavailability", "passed": false, "evidence": "Thursday's section is labeled BLOCKED but still lists a real action item: 'Only action, if any window opens up at all: post 2 peer replies ... before 11:59pm' \u2014 presented as something that still may need to happen Thursday, rather than moving the whole task off Thursday the way the with-skill run did."}, {"text": "Places work sessions in evening time slots rather than daytime/morning blocks", "passed": true, "evidence": "All other sessions are evening-framed."}, {"text": "Still surfaces STAT 131 Homework 6 (due today) with a plan for when to do it despite the constrained schedule", "passed": true, "evidence": "Wed 9/16 block: 'Finish and submit Homework 6 (due 11:59pm) \u2014 top priority, non-negotiable tonight.'"}, {"text": "Still flags ENGR 100 Quiz 3 as overdue/missing", "passed": true, "evidence": "Called out in the 'Heads up first' section."}, {"text": "Does not schedule the two already-graded items (STAT 131 HW5, CSE 290R Peer Review for RR3) as action items", "passed": true, "evidence": "Neither appears anywhere in the plan as a task."}], "summary": {"passed": 4, "failed": 1, "total": 5, "pass_rate": 0.8}}}, {"id": "eval-struggling-class-with_skill", "prompt": "I'm behind in my STAT 131 class and it's stressing me out. Can you help me plan out this week across all my classes (CSE 290R, STAT 131, ENGR 100) from Canvas, but make sure STAT 131 gets extra attention?", "eval_id": 2, "outputs": [{"name": "study_plan.md", "type": "text", "content": "# Your Week: Wed 9/16 \u2013 Tue 9/22\n\nTotally get why STAT 131 is stressing you out \u2014 the Midterm on Tuesday is worth **50% of your\ngrade in that class** (200 points, 90 minutes, timed, one attempt, covers chapters 1\u20136), and\nright now nothing's scheduled to prep for it. I built this week around getting you caught up\non that in small, steady sessions instead of one panicked cram \u2014 CSE 290R and ENGR 100 still\nget real attention, but STAT 131 gets the most sessions and the earliest start.\n\n**One thing to flag first:** ENGR 100 Quiz 3 (15 pts) was due yesterday (9/15) and is showing\nas missing. It's not scheduled below \u2014 check with your instructor about the late policy and\ndecide if it's worth submitting late, rather than letting it sit.\n\nAlso: STAT 131 Homework 5 (18/20) and CSE 290R's Peer Review for RR3 (5/5) are already\nsubmitted and graded \u2014 nothing more to do there.\n\n---\n\n## Wednesday 9/16 (today)\n- **STAT 131 \u2014 Homework 6** (~1 hr) \u2014 *due tonight 11:59pm, do this first.*\n- **STAT 131 \u2014 Skim Ch. 1\u20132 notes** (~30 min) \u2014 quick catch-up pass before tomorrow's real review session, so you know what's rusty.\n- **CSE 290R \u2014 Post your own Reading Response 4** (~20\u201330 min) \u2014 due tomorrow night, but it requires replying to 2 classmates afterward, and they need time to post first. Get yours up now.\n\n## Thursday 9/17\n- **STAT 131 \u2014 Midterm prep, session 1: Ch. 1\u20132** (~1 hr) \u2014 concepts + practice problems.\n- **CSE 290R \u2014 Reading Response 4: reply to 2 classmates** (~30 min) \u2014 *due tonight.*\n- **CSE 290R \u2014 Problem Set 3: read the prompt, outline your approach** (~1 hr) \u2014 due Saturday; this is a 100-pt assignment with a 4\u20136 page writeup, so it needs a head start, not a one-night push.\n\n## Friday 9/18\n- **STAT 131 \u2014 Midterm prep, session 2: Ch. 3\u20134** (~1 hr).\n- **CSE 290R \u2014 Problem Set 3: implement algorithm 1, start algorithm 2** (~2 hrs).\n- **ENGR 100 \u2014 Lab Report 2: data tables + first writeup section** (~1 hr) \u2014 due Sunday.\n\n## Saturday 9/19\n- **CSE 290R \u2014 Problem Set 3: finish implementation, write up results, submit** (~2\u20133 hrs) \u2014 *due tonight 11:59pm.*\n- **STAT 131 \u2014 Midterm prep, session 3: Ch. 5\u20136** (~1 hr).\n- **ENGR 100 \u2014 Lab Report 2: continue writeup** (~1 hr).\n\n## Sunday 9/20\n- **ENGR 100 \u2014 Lab Report 2: finish, proofread, submit** (~1\u20131.5 hrs) \u2014 *due tonight 11:59pm.*\n- **STAT 131 \u2014 Midterm prep, session 4: mixed practice across Ch. 1\u20136** (~1.5 hrs) \u2014 start pulling it all together.\n\n## Monday 9/21\n- **STAT 131 \u2014 Midterm prep, session 5: timed practice run** (~1.5 hrs) \u2014 do a past exam or practice set under real 90-minute conditions so exam day isn't the first time you feel the time pressure.\n- Quick review of whatever felt shakiest in that practice run.\n\n## Tuesday 9/22 (Midterm day)\n- **STAT 131 \u2014 Light review only** (~30 min) \u2014 formula sheet / flashcards, no new material.\n- **STAT 131 \u2014 Take the Midterm Exam** (90 min) \u2014 it's open all day but closes at 8pm; do it earlier in the day while you're fresh rather than right before the deadline, in case of any tech hiccups. Since it's timed and one-attempt, this is a single sitting, not something to split up.\n\n---\n\n### Why it's laid out this way\n- **STAT 131** gets 5 separate prep sessions plus the exam itself \u2014 more than any other class \u2014 because it's both your highest-stakes item this week (50% grade weight) and the one you said you're behind on. Spreading chapters 1\u20136 across several days is more realistic than one long cram, and gives you a buffer before Tuesday.\n- **CSE 290R Problem Set 3** (100 pts, in the 40%-weighted Problem Sets group) gets 3 sessions across Thu\u2013Sat since it's a real coding + writeup assignment, not something to start the night it's due.\n- **ENGR 100 Lab Report 2** gets 3 shorter sessions since it's moderate-weight (30% group) and due Sunday.\n- Effort estimates above are rough \u2014 treat \"~1 hr\" as ballpark, not precise.\n"}], "grading": {"expectations": [{"text": "Allocates visibly more total time or more study sessions to STAT 131 than a neutral weighting of its items alone would suggest", "passed": true, "evidence": "Explicit closing note: 'STAT 131 gets 5 separate prep sessions plus the exam itself \u2014 more than any other class.'"}, {"text": "Includes STAT 131 review/catch-up time beyond just the newly-due items (e.g. reviewing earlier material or exam prep), not only 'do the new homework'", "passed": true, "evidence": "Ch.1-2 skim Wed, then dedicated chapter-by-chapter prep sessions Thu-Mon plus a timed practice run, all beyond just HW6."}, {"text": "Still surfaces and correctly handles the other two courses' items (CSE 290R Problem Set 3 multi-session scheduling, ENGR 100 overdue quiz flagged)", "passed": true, "evidence": "PS3 spread Thu (outline) / Fri (implement) / Sat (finish+submit) \u2014 3 sessions; ENGR100 Quiz 3 flagged in the intro."}, {"text": "Acknowledges the user's stated stress/being-behind in the response, rather than just silently reweighting without comment", "passed": true, "evidence": "Opens with 'Totally get why STAT 131 is stressing you out.'"}], "summary": {"passed": 4, "failed": 0, "total": 4, "pass_rate": 1.0}}}, {"id": "eval-struggling-class-without_skill", "prompt": "I'm behind in my STAT 131 class and it's stressing me out. Can you help me plan out this week across all my classes (CSE 290R, STAT 131, ENGR 100) from Canvas, but make sure STAT 131 gets extra attention?", "eval_id": 2, "outputs": [{"name": "study_plan.md", "type": "text", "content": "# Your Week Ahead: Wed 9/16 \u2013 Wed 9/23\n\nI know STAT 131 is the thing keeping you up at night, so I built this plan around it \u2014 the other two classes are scheduled to protect your STAT 131 time, not compete with it. Here's the full picture first, then the day-by-day.\n\n## The situation, at a glance\n\n- **STAT 131 Midterm Exam** \u2014 Tue 9/22, 8:00pm cutoff, 90 minutes, one attempt, covers Ch. 1\u20136. This is the single biggest thing on your plate: **Exams are 50% of your STAT 131 grade** and the Final is another 25%, so exam performance alone is **75% of your grade** in this class. This is exactly why it's getting the most dedicated time below.\n- **STAT 131 Homework 6** \u2014 due **tonight, 9/16 at 11:59pm**. Not yet submitted. This needs to happen before anything else today.\n- **CSE 290R Reading Response 4** \u2014 due Thu 9/17, 11:59pm. Has a catch: you need to post your own response *and* reply to 2 classmates, and you can't reply until classmates have posted. Post early so replies are possible in time.\n- **CSE 290R Problem Set 3** \u2014 due Sat 9/19, 11:59pm. Substantial: coding + a 4-6 page writeup. Needs a real block of time, not a squeeze-in.\n- **ENGR 100 Lab Report 2** \u2014 due Sun 9/20, 11:59pm. ~3 pages + data tables.\n- **Heads up:** ENGR 100 Quiz 3 was due 9/15 and shows as missing. It's outside this week's window and I haven't built recovery time for it into this plan, but it's worth a quick email to your instructor this week asking about late credit or how it'll be handled \u2014 don't let it sit unaddressed.\n- Nice work already done: STAT 131 Homework 5 (18/20) and the CSE 290R Peer Review for RR3 (5/5) are both submitted and graded \u2014 nothing to do there.\n\n## Day by day\n\n### Wednesday 9/16 (today)\n- **[Priority] STAT 131 \u2014 Homework 6 (due 11:59pm tonight).** Do this first, before anything else on this list. It's short (20 pts) but it's due tonight and skipping it would add to the stress, not the grade.\n- **STAT 131 \u2014 30 min:** Once HW6 is submitted, skim your Ch. 1\u20136 notes/slides just to map out what the midterm actually covers and where your weak spots are. This sets up the rest of the week's review so it's targeted instead of a last-minute cram.\n\n### Thursday 9/17\n- **CSE 290R \u2014 Reading Response 4 (due 11:59pm).** Post your own response *first thing* today, not tonight \u2014 your 2 required peer replies depend on classmates having already posted, so posting early gives that time to happen.\n- **STAT 131 \u2014 45\u201360 min:** Review Ch. 1\u20132, work practice problems. This is the first of several dedicated exam-prep blocks this week.\n- Check back later today/evening for CSE 290R peer replies once classmates have posted.\n\n### Friday 9/18\n- **CSE 290R:** Finish RR4 peer replies if you haven't already (make sure this is done before end of day, even though the hard deadline was yesterday \u2014 get it in).\n- **STAT 131 \u2014 45\u201360 min:** Review Ch. 3\u20134, practice problems.\n- **ENGR 100 \u2014 30\u201345 min:** Start Lab Report 2 \u2014 pull together your data tables and outline the report so Sunday isn't a scramble.\n\n### Saturday 9/19\n- **[Priority] CSE 290R \u2014 Problem Set 3 (due 11:59pm tonight).** This is the heaviest single item this week (coding + 4-6 page writeup). Give it the bulk of today \u2014 ideally a morning coding block and an afternoon/evening writeup block.\n- **STAT 131 \u2014 20\u201330 min (light):** Quick flashcards/review of Ch. 5-6 vocabulary and formulas to keep momentum without derailing PS3 day.\n\n### Sunday 9/20\n- **[Priority] ENGR 100 \u2014 Lab Report 2 (due 11:59pm tonight).** Finish and submit.\n- **STAT 131 \u2014 60\u201375 min:** Full review of Ch. 5\u20136, then work a mixed practice set pulling from all six chapters. This is your last \"new content\" study block before the exam.\n\n### Monday 9/21\n- **[Priority] STAT 131 \u2014 full timed practice exam, 90 minutes, done under real conditions** (quiet room, no notes if the real exam is closed-book, one sitting). This is the single highest-leverage thing you can do before tomorrow \u2014 it tells you exactly where to spend your last review hours.\n- **STAT 131 \u2014 30\u201345 min after:** Review whatever the practice exam exposed as weak. Build a one-page formula/concept sheet to glance at Tuesday morning.\n- **Quick task (15 min):** Send that email to your ENGR 100 instructor about the missing Quiz 3.\n\n### Tuesday 9/22 \u2014 Midterm day\n- **STAT 131 \u2014 20\u201330 min, morning:** Light review only \u2014 your formula sheet, no new material. You've done the work; this is just a warm-up.\n- **[Priority] STAT 131 \u2014 Midterm Exam.** It's open anytime before 8:00pm but must be done in one uninterrupted 90-minute sitting \u2014 schedule an actual 90+ minute block (pick a time when you're mentally fresh, not squeezed between other things), silence notifications, and have scratch paper ready before you start.\n- Keep the rest of today light. You've earned it.\n\n### Wednesday 9/23\n- Buffer/catch-up day. Use it for anything that slipped (peer replies, lab report polish, that ENGR 100 email if you haven't sent it) and to breathe before next week starts.\n\n## Why STAT 131 got extra attention\n\nAcross this week, STAT 131 gets a dedicated study block on **5 of the 7 days** (Wed, Thu, Fri, Sat, Sun) plus a full practice exam on Monday and a final review Tuesday morning \u2014 more total touchpoints than either other class. That's deliberate: with Exams + Final worth 75% of your STAT 131 grade, the midterm is worth more to your overall grade than everything else on this list combined. Spreading review across five days (rather than cramming Monday night) is also just a better way to actually retain Ch. 1\u20136 material for a 90-minute timed test.\n\nYou've got this \u2014 one thing at a time, starting with tonight's Homework 6.\n"}], "grading": {"expectations": [{"text": "Allocates visibly more total time or more study sessions to STAT 131 than a neutral weighting of its items alone would suggest", "passed": true, "evidence": "Closing section: 'STAT 131 gets a dedicated study block on 5 of the 7 days ... more total touchpoints than either other class.'"}, {"text": "Includes STAT 131 review/catch-up time beyond just the newly-due items (e.g. reviewing earlier material or exam prep), not only 'do the new homework'", "passed": true, "evidence": "Ch.1-6 review sessions spread Wed-Mon plus a full timed practice exam Monday, well beyond just HW6."}, {"text": "Still surfaces and correctly handles the other two courses' items (CSE 290R Problem Set 3 multi-session scheduling, ENGR 100 overdue quiz flagged)", "passed": false, "evidence": "ENGR 100 Quiz 3 is flagged correctly, but Problem Set 3 (a 100-pt, multi-day-recommended item per the skill's own effort guidance) is compressed into a single day (Saturday, 'the bulk of today ... morning coding block and afternoon/evening writeup block') rather than spread across multiple days the way the with-skill run did \u2014 a likely side effect of front-loading STAT 131 review starting immediately."}, {"text": "Acknowledges the user's stated stress/being-behind in the response, rather than just silently reweighting without comment", "passed": true, "evidence": "Opens with 'I know STAT 131 is the thing keeping you up at night.'"}], "summary": {"passed": 3, "failed": 1, "total": 4, "pass_rate": 0.75}}}], "previous_feedback": {}, "previous_outputs": {}, "benchmark": {"metadata": {"skill_name": "study-agent", "skill_path": "<path/to/skill>", "executor_model": "<model-name>", "analyzer_model": "<model-name>", "timestamp": "2026-09-16T15:19:11Z", "evals_run": [0, 1, 2], "runs_per_configuration": 3}, "runs": [{"eval_id": 1, "configuration": "with_skill", "run_number": 1, "result": {"pass_rate": 1.0, "passed": 5, "failed": 0, "total": 5, "time_seconds": 74.4, "tokens": 55737, "tool_calls": 0, "errors": 0}, "expectations": [{"text": "Schedules zero tasks on Thursday, honoring the stated unavailability", "passed": true, "evidence": "'## Thursday 9/17 \u2014 blocked, nothing scheduled' \u2014 the RR4 item that would have landed Thursday was moved entirely into Wednesday instead."}, {"text": "Places work sessions in evening time slots rather than daytime/morning blocks", "passed": true, "evidence": "All sessions framed as 'tonight'/evening; no daytime blocks scheduled."}, {"text": "Still surfaces STAT 131 Homework 6 (due today) with a plan for when to do it despite the constrained schedule", "passed": true, "evidence": "Leads Wednesday's block: 'due tonight ... do this first or early.'"}, {"text": "Still flags ENGR 100 Quiz 3 as overdue/missing", "passed": true, "evidence": "Dedicated 'Flag: ENGR 100 Quiz 3 \u2014 missing, past due' section."}, {"text": "Does not schedule the two already-graded items (STAT 131 HW5, CSE 290R Peer Review for RR3) as action items", "passed": true, "evidence": "Explicitly noted in closing notes as already graded, not scheduled."}], "notes": []}, {"eval_id": 0, "configuration": "with_skill", "run_number": 1, "result": {"pass_rate": 1.0, "passed": 7, "failed": 0, "total": 7, "time_seconds": 61.5, "tokens": 55162, "tool_calls": 0, "errors": 0}, "expectations": [{"text": "Identifies STAT 131 Homework 6 (due today, 9/16) as the most time-urgent item and schedules it today", "passed": true, "evidence": "Wed 9/16 block leads with 'STAT 131 \u2014 Homework 6 ... Do this first, no flexibility here.'"}, {"text": "Flags ENGR 100 Quiz 3 as overdue/missing rather than omitting it or treating it as a normal upcoming task", "passed": true, "evidence": "Opening paragraph calls it out by name as due yesterday and missing, tells user to check with instructor."}, {"text": "Does not list STAT 131 Homework 5 or the CSE 290R 'Peer Review for RR3' as action items, since both are already submitted and graded", "passed": true, "evidence": "Both mentioned explicitly as 'already done and need nothing from you' with their scores, not scheduled anywhere."}, {"text": "Gives Problem Set 3 (CSE 290R) more than one work session spread across multiple days before its Saturday due date, rather than a single session the night before", "passed": true, "evidence": "Sketch approach (Wed), implement algo 1 (Thu), algo 2 + writeup (Fri), finish/submit (Sat) \u2014 4 sessions across 4 days."}, {"text": "Notes or schedules the Reading Response 4 initial post early enough (well before Thursday) to allow the required peer replies before the deadline", "passed": true, "evidence": "Posted Wednesday with explicit reasoning about peer-reply dependency; replies scheduled Thursday."}, {"text": "Treats the STAT 131 midterm exam as high priority (dedicated review/study time before 9/22) despite it having the latest due date of any item, citing its point value/weight or exam status as the reason", "passed": true, "evidence": "Review sessions Thu (ch1-3), Fri (ch4-6), Sun (practice), Mon (final review + take exam); intro explicitly cites the 50%-weight/200-pt reasoning."}, {"text": "Presents the plan broken out by day (not just a flat prioritized list)", "passed": true, "evidence": "Explicit Wednesday-through-Tuesday day headers."}], "notes": []}, {"eval_id": 2, "configuration": "with_skill", "run_number": 1, "result": {"pass_rate": 1.0, "passed": 4, "failed": 0, "total": 4, "time_seconds": 63.1, "tokens": 55574, "tool_calls": 0, "errors": 0}, "expectations": [{"text": "Allocates visibly more total time or more study sessions to STAT 131 than a neutral weighting of its items alone would suggest", "passed": true, "evidence": "Explicit closing note: 'STAT 131 gets 5 separate prep sessions plus the exam itself \u2014 more than any other class.'"}, {"text": "Includes STAT 131 review/catch-up time beyond just the newly-due items (e.g. reviewing earlier material or exam prep), not only 'do the new homework'", "passed": true, "evidence": "Ch.1-2 skim Wed, then dedicated chapter-by-chapter prep sessions Thu-Mon plus a timed practice run, all beyond just HW6."}, {"text": "Still surfaces and correctly handles the other two courses' items (CSE 290R Problem Set 3 multi-session scheduling, ENGR 100 overdue quiz flagged)", "passed": true, "evidence": "PS3 spread Thu (outline) / Fri (implement) / Sat (finish+submit) \u2014 3 sessions; ENGR100 Quiz 3 flagged in the intro."}, {"text": "Acknowledges the user's stated stress/being-behind in the response, rather than just silently reweighting without comment", "passed": true, "evidence": "Opens with 'Totally get why STAT 131 is stressing you out.'"}], "notes": []}, {"eval_id": 1, "configuration": "without_skill", "run_number": 1, "result": {"pass_rate": 0.8, "passed": 4, "failed": 1, "total": 5, "time_seconds": 46.7, "tokens": 46970, "tool_calls": 0, "errors": 0}, "expectations": [{"text": "Schedules zero tasks on Thursday, honoring the stated unavailability", "passed": false, "evidence": "Thursday's section is labeled BLOCKED but still lists a real action item: 'Only action, if any window opens up at all: post 2 peer replies ... before 11:59pm' \u2014 presented as something that still may need to happen Thursday, rather than moving the whole task off Thursday the way the with-skill run did."}, {"text": "Places work sessions in evening time slots rather than daytime/morning blocks", "passed": true, "evidence": "All other sessions are evening-framed."}, {"text": "Still surfaces STAT 131 Homework 6 (due today) with a plan for when to do it despite the constrained schedule", "passed": true, "evidence": "Wed 9/16 block: 'Finish and submit Homework 6 (due 11:59pm) \u2014 top priority, non-negotiable tonight.'"}, {"text": "Still flags ENGR 100 Quiz 3 as overdue/missing", "passed": true, "evidence": "Called out in the 'Heads up first' section."}, {"text": "Does not schedule the two already-graded items (STAT 131 HW5, CSE 290R Peer Review for RR3) as action items", "passed": true, "evidence": "Neither appears anywhere in the plan as a task."}], "notes": []}, {"eval_id": 0, "configuration": "without_skill", "run_number": 1, "result": {"pass_rate": 1.0, "passed": 7, "failed": 0, "total": 7, "time_seconds": 37.5, "tokens": 46248, "tool_calls": 0, "errors": 0}, "expectations": [{"text": "Identifies STAT 131 Homework 6 (due today, 9/16) as the most time-urgent item and schedules it today", "passed": true, "evidence": "Table + Wed day-plan both lead with HW6 due tonight."}, {"text": "Flags ENGR 100 Quiz 3 as overdue/missing rather than omitting it or treating it as a normal upcoming task", "passed": true, "evidence": "Dedicated 'First, one thing needs your attention immediately' section."}, {"text": "Does not list STAT 131 Homework 5 or the CSE 290R 'Peer Review for RR3' as action items, since both are already submitted and graded", "passed": true, "evidence": "Explicitly listed as 'Already done and graded \u2014 no action needed' with scores."}, {"text": "Gives Problem Set 3 (CSE 290R) more than one work session spread across multiple days before its Saturday due date, rather than a single session the night before", "passed": true, "evidence": "Sketch approach (Thu), code algo 1 (Fri), finish+writeup+submit (Sat) \u2014 3 sessions across 3 days."}, {"text": "Notes or schedules the Reading Response 4 initial post early enough (well before Thursday) to allow the required peer replies before the deadline", "passed": true, "evidence": "Posted Wed, replies Thu, with an explicit 'hidden time trap' callout explaining why."}, {"text": "Treats the STAT 131 midterm exam as high priority (dedicated review/study time before 9/22) despite it having the latest due date of any item, citing its point value/weight or exam status as the reason", "passed": true, "evidence": "Review sessions Thu, Fri, Sun, Mon (full review day), explicit 50%-weight reasoning throughout."}, {"text": "Presents the plan broken out by day (not just a flat prioritized list)", "passed": true, "evidence": "Explicit Wed-Wed day headers, plus a summary table (belt and suspenders)."}], "notes": []}, {"eval_id": 2, "configuration": "without_skill", "run_number": 1, "result": {"pass_rate": 0.75, "passed": 3, "failed": 1, "total": 4, "time_seconds": 51.6, "tokens": 47381, "tool_calls": 0, "errors": 0}, "expectations": [{"text": "Allocates visibly more total time or more study sessions to STAT 131 than a neutral weighting of its items alone would suggest", "passed": true, "evidence": "Closing section: 'STAT 131 gets a dedicated study block on 5 of the 7 days ... more total touchpoints than either other class.'"}, {"text": "Includes STAT 131 review/catch-up time beyond just the newly-due items (e.g. reviewing earlier material or exam prep), not only 'do the new homework'", "passed": true, "evidence": "Ch.1-6 review sessions spread Wed-Mon plus a full timed practice exam Monday, well beyond just HW6."}, {"text": "Still surfaces and correctly handles the other two courses' items (CSE 290R Problem Set 3 multi-session scheduling, ENGR 100 overdue quiz flagged)", "passed": false, "evidence": "ENGR 100 Quiz 3 is flagged correctly, but Problem Set 3 (a 100-pt, multi-day-recommended item per the skill's own effort guidance) is compressed into a single day (Saturday, 'the bulk of today ... morning coding block and afternoon/evening writeup block') rather than spread across multiple days the way the with-skill run did \u2014 a likely side effect of front-loading STAT 131 review starting immediately."}, {"text": "Acknowledges the user's stated stress/being-behind in the response, rather than just silently reweighting without comment", "passed": true, "evidence": "Opens with 'I know STAT 131 is the thing keeping you up at night.'"}], "notes": []}], "run_summary": {"with_skill": {"pass_rate": {"mean": 1.0, "stddev": 0.0, "min": 1.0, "max": 1.0}, "time_seconds": {"mean": 66.3333, "stddev": 7.0316, "min": 61.5, "max": 74.4}, "tokens": {"mean": 55491.0, "stddev": 296.3495, "min": 55162, "max": 55737}}, "without_skill": {"pass_rate": {"mean": 0.85, "stddev": 0.1323, "min": 0.75, "max": 1.0}, "time_seconds": {"mean": 45.2667, "stddev": 7.1584, "min": 37.5, "max": 51.6}, "tokens": {"mean": 46866.3333, "stddev": 573.5698, "min": 46248, "max": 47381}}, "delta": {"pass_rate": "+0.15", "time_seconds": "+21.1", "tokens": "+8625"}}, "notes": ["The plain-request eval is fully saturated (7/7 both configurations) \u2014 Sonnet already reasons well about prioritization, filtering out graded items, and spreading heavy items across days without being told to. It's not a useless eval (it confirms the baseline floor is high), but it doesn't currently discriminate the skill's value; a harder/more ambiguous fixture would be needed to see a gap here.", "Both eval-limited-availability and eval-struggling-class show a small, consistent, plausible pattern rather than noise: the baseline (no skill) tends to hedge on hard constraints (Thursday 'blocked' still got a conditional task in one run) and can let one course's items compress into a single day when attention shifts toward a struggling class, whereas the with-skill runs held the stated constraint firmly and kept the skill's 'spread heavy items across multiple days' rule even under competing pressure. This matches the skill's explicit instructions on both points, suggesting the skill is doing real work on the two evals designed to stress-test it, even though it doesn't move the needle on the easy case.", "All 3 evals used a single synthetic fixture (no live Canvas access in the test sandbox) rather than a real account, so this doesn't test the data-fetching mechanics (auth, pagination, assignment_groups calls) at all \u2014 only the planning/reasoning logic once data is in hand. A follow-up iteration against real API responses (or a wider variety of fixtures \u2014 course with unweighted grading, a term with 5+ courses, an assignment with no due date) would stress different parts of the skill.", "Delta is smaller here (+0.15) than it was for the companion canvas-lms-api skill (+0.19) \u2014 consistent with this being a 'judgment and prose' skill rather than a 'hidden technical gotcha' skill: there's no single sharp bug (like unhandled rate-limiting) for the skill to close here, just better average adherence to stated constraints and its own stated heuristics."]}};
+
+    // ---- State ----
+    let feedbackMap = {};  // run_id -> feedback text
+    let currentIndex = 0;
+    let visitedRuns = new Set();
+
+    // ---- Init ----
+    async function init() {
+      // Load saved feedback from server — but only if this isn't a fresh
+      // iteration (indicated by previous_feedback being present). When
+      // previous feedback exists, the feedback.json on disk is stale from
+      // the prior iteration and should not pre-fill the textareas.
+      const hasPrevious = Object.keys(EMBEDDED_DATA.previous_feedback || {}).length > 0
+        || Object.keys(EMBEDDED_DATA.previous_outputs || {}).length > 0;
+      if (!hasPrevious) {
+        try {
+          const resp = await fetch("/api/feedback");
+          const data = await resp.json();
+          if (data.reviews) {
+            for (const r of data.reviews) feedbackMap[r.run_id] = r.feedback;
+          }
+        } catch { /* first run, no feedback yet */ }
+      }
+
+      document.getElementById("skill-name").textContent = EMBEDDED_DATA.skill_name;
+      showRun(0);
+
+      // Wire up feedback auto-save
+      const textarea = document.getElementById("feedback");
+      let saveTimeout = null;
+      textarea.addEventListener("input", () => {
+        clearTimeout(saveTimeout);
+        document.getElementById("feedback-status").textContent = "";
+        saveTimeout = setTimeout(() => saveCurrentFeedback(), 800);
+      });
+    }
+
+    // ---- Navigation ----
+    function navigate(delta) {
+      const newIndex = currentIndex + delta;
+      if (newIndex >= 0 && newIndex < EMBEDDED_DATA.runs.length) {
+        saveCurrentFeedback();
+        showRun(newIndex);
+      }
+    }
+
+    function updateNavButtons() {
+      document.getElementById("prev-btn").disabled = currentIndex === 0;
+      document.getElementById("next-btn").disabled =
+        currentIndex === EMBEDDED_DATA.runs.length - 1;
+    }
+
+    // ---- Show a run ----
+    function showRun(index) {
+      currentIndex = index;
+      const run = EMBEDDED_DATA.runs[index];
+
+      // Progress
+      document.getElementById("progress").textContent =
+        `${index + 1} of ${EMBEDDED_DATA.runs.length}`;
+
+      // Prompt
+      document.getElementById("prompt-text").textContent = run.prompt;
+
+      // Config badge
+      const badge = document.getElementById("config-badge");
+      const configMatch = run.id.match(/(with_skill|without_skill|new_skill|old_skill)/);
+      if (configMatch) {
+        const config = configMatch[1];
+        const isBaseline = config === "without_skill" || config === "old_skill";
+        badge.textContent = config.replace(/_/g, " ");
+        badge.className = "config-badge " + (isBaseline ? "config-baseline" : "config-primary");
+        badge.style.display = "inline-block";
+      } else {
+        badge.style.display = "none";
+      }
+
+      // Outputs
+      renderOutputs(run);
+
+      // Previous outputs
+      renderPrevOutputs(run);
+
+      // Grades
+      renderGrades(run);
+
+      // Previous feedback
+      const prevFb = (EMBEDDED_DATA.previous_feedback || {})[run.id];
+      const prevEl = document.getElementById("prev-feedback");
+      if (prevFb) {
+        document.getElementById("prev-feedback-text").textContent = prevFb;
+        prevEl.style.display = "block";
+      } else {
+        prevEl.style.display = "none";
+      }
+
+      // Feedback
+      document.getElementById("feedback").value = feedbackMap[run.id] || "";
+      document.getElementById("feedback-status").textContent = "";
+
+      updateNavButtons();
+
+      // Track visited runs and promote done button when all visited
+      visitedRuns.add(index);
+      const doneBtn = document.getElementById("done-btn");
+      if (visitedRuns.size >= EMBEDDED_DATA.runs.length) {
+        doneBtn.classList.add("ready");
+      }
+
+      // Scroll main content to top
+      document.querySelector(".main").scrollTop = 0;
+    }
+
+    // ---- Render outputs ----
+    function renderOutputs(run) {
+      const container = document.getElementById("outputs-body");
+      container.innerHTML = "";
+
+      const outputs = run.outputs || [];
+      if (outputs.length === 0) {
+        container.innerHTML = '<div class="empty-state">No output files</div>';
+        return;
+      }
+
+      for (const file of outputs) {
+        const fileDiv = document.createElement("div");
+        fileDiv.className = "output-file";
+
+        // Always show file header with download link
+        const header = document.createElement("div");
+        header.className = "output-file-header";
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = file.name;
+        header.appendChild(nameSpan);
+        const dlBtn = document.createElement("a");
+        dlBtn.className = "dl-btn";
+        dlBtn.textContent = "Download";
+        dlBtn.download = file.name;
+        dlBtn.href = getDownloadUri(file);
+        header.appendChild(dlBtn);
+        fileDiv.appendChild(header);
+
+        const content = document.createElement("div");
+        content.className = "output-file-content";
+
+        if (file.type === "text") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          content.appendChild(pre);
+        } else if (file.type === "image") {
+          const img = document.createElement("img");
+          img.src = file.data_uri;
+          img.alt = file.name;
+          content.appendChild(img);
+        } else if (file.type === "pdf") {
+          const iframe = document.createElement("iframe");
+          iframe.src = file.data_uri;
+          content.appendChild(iframe);
+        } else if (file.type === "xlsx") {
+          renderXlsx(content, file.data_b64);
+        } else if (file.type === "binary") {
+          const a = document.createElement("a");
+          a.className = "download-link";
+          a.href = file.data_uri;
+          a.download = file.name;
+          a.textContent = "Download " + file.name;
+          content.appendChild(a);
+        } else if (file.type === "error") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          pre.style.color = "var(--red)";
+          content.appendChild(pre);
+        }
+
+        fileDiv.appendChild(content);
+        container.appendChild(fileDiv);
+      }
+    }
+
+    // ---- XLSX rendering via SheetJS ----
+    function renderXlsx(container, b64Data) {
+      try {
+        const raw = Uint8Array.from(atob(b64Data), c => c.charCodeAt(0));
+        const wb = XLSX.read(raw, { type: "array" });
+
+        for (let i = 0; i < wb.SheetNames.length; i++) {
+          const sheetName = wb.SheetNames[i];
+          const ws = wb.Sheets[sheetName];
+
+          if (wb.SheetNames.length > 1) {
+            const sheetLabel = document.createElement("div");
+            sheetLabel.style.cssText =
+              "font-weight:600; font-size:0.8rem; color:#b0aea5; margin-top:0.5rem; margin-bottom:0.25rem;";
+            sheetLabel.textContent = "Sheet: " + sheetName;
+            container.appendChild(sheetLabel);
+          }
+
+          const htmlStr = XLSX.utils.sheet_to_html(ws, { editable: false });
+          const wrapper = document.createElement("div");
+          wrapper.innerHTML = htmlStr;
+          container.appendChild(wrapper);
+        }
+      } catch (err) {
+        container.textContent = "Error rendering spreadsheet: " + err.message;
+      }
+    }
+
+    // ---- Grades ----
+    function renderGrades(run) {
+      const section = document.getElementById("grades-section");
+      const content = document.getElementById("grades-content");
+
+      if (!run.grading) {
+        section.style.display = "none";
+        return;
+      }
+
+      const grading = run.grading;
+      section.style.display = "block";
+      // Reset to collapsed
+      content.classList.remove("open");
+      document.getElementById("grades-arrow").classList.remove("open");
+
+      const summary = grading.summary || {};
+      const expectations = grading.expectations || [];
+
+      let html = '<div style="padding: 1rem;">';
+
+      // Summary line
+      const passRate = summary.pass_rate != null
+        ? Math.round(summary.pass_rate * 100) + "%"
+        : "?";
+      const badgeClass = summary.pass_rate >= 0.8 ? "grade-pass" : summary.pass_rate >= 0.5 ? "" : "grade-fail";
+      html += '<div class="grades-summary">';
+      html += '<span class="grade-badge ' + badgeClass + '">' + passRate + '</span>';
+      html += '<span>' + (summary.passed || 0) + ' passed, ' + (summary.failed || 0) + ' failed of ' + (summary.total || 0) + '</span>';
+      html += '</div>';
+
+      // Assertions list
+      html += '<ul class="assertion-list">';
+      for (const exp of expectations) {
+        const statusClass = exp.passed ? "pass" : "fail";
+        const statusIcon = exp.passed ? "\u2713" : "\u2717";
+        html += '<li class="assertion-item">';
+        html += '<span class="assertion-status ' + statusClass + '">' + statusIcon + '</span>';
+        html += '<span>' + escapeHtml(exp.text) + '</span>';
+        if (exp.evidence) {
+          html += '<div class="assertion-evidence">' + escapeHtml(exp.evidence) + '</div>';
+        }
+        html += '</li>';
+      }
+      html += '</ul>';
+
+      html += '</div>';
+      content.innerHTML = html;
+    }
+
+    function toggleGrades() {
+      const content = document.getElementById("grades-content");
+      const arrow = document.getElementById("grades-arrow");
+      content.classList.toggle("open");
+      arrow.classList.toggle("open");
+    }
+
+    // ---- Previous outputs (collapsible) ----
+    function renderPrevOutputs(run) {
+      const section = document.getElementById("prev-outputs-section");
+      const content = document.getElementById("prev-outputs-content");
+      const prevOutputs = (EMBEDDED_DATA.previous_outputs || {})[run.id];
+
+      if (!prevOutputs || prevOutputs.length === 0) {
+        section.style.display = "none";
+        return;
+      }
+
+      section.style.display = "block";
+      // Reset to collapsed
+      content.classList.remove("open");
+      document.getElementById("prev-outputs-arrow").classList.remove("open");
+
+      // Render the files into the content area
+      content.innerHTML = "";
+      const wrapper = document.createElement("div");
+      wrapper.style.padding = "1rem";
+
+      for (const file of prevOutputs) {
+        const fileDiv = document.createElement("div");
+        fileDiv.className = "output-file";
+
+        const header = document.createElement("div");
+        header.className = "output-file-header";
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = file.name;
+        header.appendChild(nameSpan);
+        const dlBtn = document.createElement("a");
+        dlBtn.className = "dl-btn";
+        dlBtn.textContent = "Download";
+        dlBtn.download = file.name;
+        dlBtn.href = getDownloadUri(file);
+        header.appendChild(dlBtn);
+        fileDiv.appendChild(header);
+
+        const fc = document.createElement("div");
+        fc.className = "output-file-content";
+
+        if (file.type === "text") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          fc.appendChild(pre);
+        } else if (file.type === "image") {
+          const img = document.createElement("img");
+          img.src = file.data_uri;
+          img.alt = file.name;
+          fc.appendChild(img);
+        } else if (file.type === "pdf") {
+          const iframe = document.createElement("iframe");
+          iframe.src = file.data_uri;
+          fc.appendChild(iframe);
+        } else if (file.type === "xlsx") {
+          renderXlsx(fc, file.data_b64);
+        } else if (file.type === "binary") {
+          const a = document.createElement("a");
+          a.className = "download-link";
+          a.href = file.data_uri;
+          a.download = file.name;
+          a.textContent = "Download " + file.name;
+          fc.appendChild(a);
+        }
+
+        fileDiv.appendChild(fc);
+        wrapper.appendChild(fileDiv);
+      }
+
+      content.appendChild(wrapper);
+    }
+
+    function togglePrevOutputs() {
+      const content = document.getElementById("prev-outputs-content");
+      const arrow = document.getElementById("prev-outputs-arrow");
+      content.classList.toggle("open");
+      arrow.classList.toggle("open");
+    }
+
+    // ---- Feedback (saved to server -> feedback.json) ----
+    function saveCurrentFeedback() {
+      const run = EMBEDDED_DATA.runs[currentIndex];
+      const text = document.getElementById("feedback").value;
+
+      if (text.trim() === "") {
+        delete feedbackMap[run.id];
+      } else {
+        feedbackMap[run.id] = text;
+      }
+
+      // Build reviews array from map
+      const reviews = [];
+      for (const [run_id, feedback] of Object.entries(feedbackMap)) {
+        if (feedback.trim()) {
+          reviews.push({ run_id, feedback, timestamp: new Date().toISOString() });
+        }
+      }
+
+      fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reviews, status: "in_progress" }),
+      }).then(() => {
+        document.getElementById("feedback-status").textContent = "Saved";
+      }).catch(() => {
+        // Static mode or server unavailable — no-op on auto-save,
+        // feedback will be downloaded on final submit
+        document.getElementById("feedback-status").textContent = "Will download on submit";
+      });
+    }
+
+    // ---- Done ----
+    function showDoneDialog() {
+      // Save current textarea to feedbackMap (but don't POST yet)
+      const run = EMBEDDED_DATA.runs[currentIndex];
+      const text = document.getElementById("feedback").value;
+      if (text.trim() === "") {
+        delete feedbackMap[run.id];
+      } else {
+        feedbackMap[run.id] = text;
+      }
+
+      // POST once with status: complete — include ALL runs so the model
+      // can distinguish "no feedback" (looks good) from "not reviewed"
+      const reviews = [];
+      const ts = new Date().toISOString();
+      for (const r of EMBEDDED_DATA.runs) {
+        reviews.push({ run_id: r.id, feedback: feedbackMap[r.id] || "", timestamp: ts });
+      }
+      const payload = JSON.stringify({ reviews, status: "complete" }, null, 2);
+      fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: payload,
+      }).then(() => {
+        document.getElementById("done-overlay").classList.add("visible");
+      }).catch(() => {
+        // Server not available (static mode) — download as file
+        const blob = new Blob([payload], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "feedback.json";
+        a.click();
+        URL.revokeObjectURL(url);
+        document.getElementById("done-overlay").classList.add("visible");
+      });
+    }
+
+    function closeDoneDialog() {
+      // Reset status back to in_progress
+      saveCurrentFeedback();
+      document.getElementById("done-overlay").classList.remove("visible");
+    }
+
+    // ---- Toast ----
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.classList.add("visible");
+      setTimeout(() => toast.classList.remove("visible"), 2000);
+    }
+
+    // ---- Keyboard nav ----
+    document.addEventListener("keydown", (e) => {
+      // Don't capture when typing in textarea
+      if (e.target.tagName === "TEXTAREA") return;
+
+      if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+        e.preventDefault();
+        navigate(-1);
+      } else if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+        e.preventDefault();
+        navigate(1);
+      }
+    });
+
+    // ---- Util ----
+    function getDownloadUri(file) {
+      if (file.data_uri) return file.data_uri;
+      if (file.data_b64) return "data:application/octet-stream;base64," + file.data_b64;
+      if (file.type === "text") return "data:text/plain;charset=utf-8," + encodeURIComponent(file.content);
+      return "#";
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement("div");
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // ---- View switching ----
+    function switchView(view) {
+      document.querySelectorAll(".view-tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".view-panel").forEach(p => p.classList.remove("active"));
+      document.querySelector(`[onclick="switchView('${view}')"]`).classList.add("active");
+      document.getElementById("panel-" + view).classList.add("active");
+    }
+
+    // ---- Benchmark rendering ----
+    function renderBenchmark() {
+      const data = EMBEDDED_DATA.benchmark;
+      if (!data) return;
+
+      // Show the tabs
+      document.getElementById("view-tabs").style.display = "flex";
+
+      const container = document.getElementById("benchmark-content");
+      const summary = data.run_summary || {};
+      const metadata = data.metadata || {};
+      const notes = data.notes || [];
+
+      let html = "";
+
+      // Header
+      html += "<h2 style='font-family: Poppins, sans-serif; margin-bottom: 0.5rem;'>Benchmark Results</h2>";
+      html += "<p style='color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.25rem;'>";
+      if (metadata.skill_name) html += "<strong>" + escapeHtml(metadata.skill_name) + "</strong> &mdash; ";
+      if (metadata.timestamp) html += metadata.timestamp + " &mdash; ";
+      if (metadata.evals_run) html += "Evals: " + metadata.evals_run.join(", ") + " &mdash; ";
+      html += (metadata.runs_per_configuration || "?") + " runs per configuration";
+      html += "</p>";
+
+      // Summary table
+      html += '<table class="benchmark-table">';
+
+      function fmtStat(stat, pct) {
+        if (!stat) return "—";
+        const suffix = pct ? "%" : "";
+        const m = pct ? (stat.mean * 100).toFixed(0) : stat.mean.toFixed(1);
+        const s = pct ? (stat.stddev * 100).toFixed(0) : stat.stddev.toFixed(1);
+        return m + suffix + " ± " + s + suffix;
+      }
+
+      function deltaClass(val) {
+        if (!val) return "";
+        const n = parseFloat(val);
+        if (n > 0) return "benchmark-delta-positive";
+        if (n < 0) return "benchmark-delta-negative";
+        return "";
+      }
+
+      // Discover config names dynamically (everything except "delta")
+      const configs = Object.keys(summary).filter(k => k !== "delta");
+      const configA = configs[0] || "config_a";
+      const configB = configs[1] || "config_b";
+      const labelA = configA.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      const labelB = configB.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      const a = summary[configA] || {};
+      const b = summary[configB] || {};
+      const delta = summary.delta || {};
+
+      html += "<thead><tr><th>Metric</th><th>" + escapeHtml(labelA) + "</th><th>" + escapeHtml(labelB) + "</th><th>Delta</th></tr></thead>";
+      html += "<tbody>";
+
+      html += "<tr><td><strong>Pass Rate</strong></td>";
+      html += "<td>" + fmtStat(a.pass_rate, true) + "</td>";
+      html += "<td>" + fmtStat(b.pass_rate, true) + "</td>";
+      html += '<td class="' + deltaClass(delta.pass_rate) + '">' + (delta.pass_rate || "—") + "</td></tr>";
+
+      // Time (only show row if data exists)
+      if (a.time_seconds || b.time_seconds) {
+        html += "<tr><td><strong>Time (s)</strong></td>";
+        html += "<td>" + fmtStat(a.time_seconds, false) + "</td>";
+        html += "<td>" + fmtStat(b.time_seconds, false) + "</td>";
+        html += '<td class="' + deltaClass(delta.time_seconds) + '">' + (delta.time_seconds ? delta.time_seconds + "s" : "—") + "</td></tr>";
+      }
+
+      // Tokens (only show row if data exists)
+      if (a.tokens || b.tokens) {
+        html += "<tr><td><strong>Tokens</strong></td>";
+        html += "<td>" + fmtStat(a.tokens, false) + "</td>";
+        html += "<td>" + fmtStat(b.tokens, false) + "</td>";
+        html += '<td class="' + deltaClass(delta.tokens) + '">' + (delta.tokens || "—") + "</td></tr>";
+      }
+
+      html += "</tbody></table>";
+
+      // Per-eval breakdown (if runs data available)
+      const runs = data.runs || [];
+      if (runs.length > 0) {
+        const evalIds = [...new Set(runs.map(r => r.eval_id))].sort((a, b) => a - b);
+
+        html += "<h3 style='font-family: Poppins, sans-serif; margin-bottom: 0.75rem;'>Per-Eval Breakdown</h3>";
+
+        const hasTime = runs.some(r => r.result && r.result.time_seconds != null);
+        const hasErrors = runs.some(r => r.result && r.result.errors > 0);
+
+        for (const evalId of evalIds) {
+          const evalRuns = runs.filter(r => r.eval_id === evalId);
+          const evalName = evalRuns[0] && evalRuns[0].eval_name ? evalRuns[0].eval_name : "Eval " + evalId;
+
+          html += "<h4 style='font-family: Poppins, sans-serif; margin: 1rem 0 0.5rem; color: var(--text);'>" + escapeHtml(evalName) + "</h4>";
+          html += '<table class="benchmark-table">';
+          html += "<thead><tr><th>Config</th><th>Run</th><th>Pass Rate</th>";
+          if (hasTime) html += "<th>Time (s)</th>";
+          if (hasErrors) html += "<th>Crashes During Execution</th>";
+          html += "</tr></thead>";
+          html += "<tbody>";
+
+          // Group by config and render with average rows
+          const configGroups = [...new Set(evalRuns.map(r => r.configuration))];
+          for (let ci = 0; ci < configGroups.length; ci++) {
+            const config = configGroups[ci];
+            const configRuns = evalRuns.filter(r => r.configuration === config);
+            if (configRuns.length === 0) continue;
+
+            const rowClass = ci === 0 ? "benchmark-row-with" : "benchmark-row-without";
+            const configLabel = config.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+
+            for (const run of configRuns) {
+              const r = run.result || {};
+              const prClass = r.pass_rate >= 0.8 ? "benchmark-delta-positive" : r.pass_rate < 0.5 ? "benchmark-delta-negative" : "";
+              html += '<tr class="' + rowClass + '">';
+              html += "<td>" + configLabel + "</td>";
+              html += "<td>" + run.run_number + "</td>";
+              html += '<td class="' + prClass + '">' + ((r.pass_rate || 0) * 100).toFixed(0) + "% (" + (r.passed || 0) + "/" + (r.total || 0) + ")</td>";
+              if (hasTime) html += "<td>" + (r.time_seconds != null ? r.time_seconds.toFixed(1) : "—") + "</td>";
+              if (hasErrors) html += "<td>" + (r.errors || 0) + "</td>";
+              html += "</tr>";
+            }
+
+            // Average row
+            const rates = configRuns.map(r => (r.result || {}).pass_rate || 0);
+            const avgRate = rates.reduce((a, b) => a + b, 0) / rates.length;
+            const avgPrClass = avgRate >= 0.8 ? "benchmark-delta-positive" : avgRate < 0.5 ? "benchmark-delta-negative" : "";
+            html += '<tr class="benchmark-row-avg ' + rowClass + '">';
+            html += "<td>" + configLabel + "</td>";
+            html += "<td>Avg</td>";
+            html += '<td class="' + avgPrClass + '">' + (avgRate * 100).toFixed(0) + "%</td>";
+            if (hasTime) {
+              const times = configRuns.map(r => (r.result || {}).time_seconds).filter(t => t != null);
+              html += "<td>" + (times.length ? (times.reduce((a, b) => a + b, 0) / times.length).toFixed(1) : "—") + "</td>";
+            }
+            if (hasErrors) html += "<td></td>";
+            html += "</tr>";
+          }
+          html += "</tbody></table>";
+
+          // Per-assertion detail for this eval
+          const runsWithExpectations = {};
+          for (const config of configGroups) {
+            runsWithExpectations[config] = evalRuns.filter(r => r.configuration === config && r.expectations && r.expectations.length > 0);
+          }
+          const hasAnyExpectations = Object.values(runsWithExpectations).some(runs => runs.length > 0);
+          if (hasAnyExpectations) {
+            // Collect all unique assertion texts across all configs
+            const allAssertions = [];
+            const seen = new Set();
+            for (const config of configGroups) {
+              for (const run of runsWithExpectations[config]) {
+                for (const exp of (run.expectations || [])) {
+                  if (!seen.has(exp.text)) {
+                    seen.add(exp.text);
+                    allAssertions.push(exp.text);
+                  }
+                }
+              }
+            }
+
+            html += '<table class="benchmark-table" style="margin-top: 0.5rem;">';
+            html += "<thead><tr><th>Assertion</th>";
+            for (const config of configGroups) {
+              const label = config.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+              html += "<th>" + escapeHtml(label) + "</th>";
+            }
+            html += "</tr></thead><tbody>";
+
+            for (const assertionText of allAssertions) {
+              html += "<tr><td>" + escapeHtml(assertionText) + "</td>";
+
+              for (const config of configGroups) {
+                html += "<td>";
+                for (const run of runsWithExpectations[config]) {
+                  const exp = (run.expectations || []).find(e => e.text === assertionText);
+                  if (exp) {
+                    const cls = exp.passed ? "benchmark-delta-positive" : "benchmark-delta-negative";
+                    const icon = exp.passed ? "\u2713" : "\u2717";
+                    html += '<span class="' + cls + '" title="Run ' + run.run_number + ': ' + escapeHtml(exp.evidence || "") + '">' + icon + "</span> ";
+                  } else {
+                    html += "— ";
+                  }
+                }
+                html += "</td>";
+              }
+              html += "</tr>";
+            }
+            html += "</tbody></table>";
+          }
+        }
+      }
+
+      // Notes
+      if (notes.length > 0) {
+        html += '<div class="benchmark-notes">';
+        html += "<h3>Analysis Notes</h3>";
+        html += "<ul>";
+        for (const note of notes) {
+          html += "<li>" + escapeHtml(note) + "</li>";
+        }
+        html += "</ul></div>";
+      }
+
+      container.innerHTML = html;
+    }
+
+    // ---- Start ----
+    init();
+    renderBenchmark();
+  </script>
+</body>
+</html>

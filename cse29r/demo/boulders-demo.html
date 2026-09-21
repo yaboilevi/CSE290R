@@ -1,0 +1,648 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Boulder Lifts - Demo</title>
+    <style>
+      :root {
+        --bg: #f6f4f1;
+        --card: #fff;
+        --ink: #26221f;
+        --muted: #6b645d;
+        --line: #ddd7d0;
+        --accent: #8a5a2b;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #1c1a18;
+          --card: #262321;
+          --ink: #f0ebe5;
+          --muted: #a39b92;
+          --line: #3d3834;
+          --accent: #d9a066;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font:
+          16px/1.45 system-ui,
+          Segoe UI,
+          sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+      }
+      main {
+        max-width: 860px;
+        margin: 0 auto;
+        padding: 16px;
+      }
+      h1 {
+        font-size: 1.5rem;
+        margin: 8px 0 2px;
+      }
+      h2 {
+        font-size: 1.05rem;
+        margin: 0 0 10px;
+      }
+      .sub {
+        color: var(--muted);
+        margin: 0 0 16px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 14px;
+        margin-bottom: 14px;
+      }
+      form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: flex-end;
+      }
+      label {
+        display: flex;
+        flex-direction: column;
+        font-size: 0.85rem;
+        color: var(--muted);
+        gap: 3px;
+      }
+      input,
+      select,
+      button {
+        font: inherit;
+        padding: 7px 9px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: var(--card);
+        color: var(--ink);
+      }
+      input[type="number"] {
+        width: 96px;
+      }
+      input[type="text"] {
+        width: 150px;
+      }
+      button {
+        cursor: pointer;
+      }
+      button.primary {
+        background: var(--accent);
+        color: #fff;
+        border-color: var(--accent);
+      }
+      button:focus-visible,
+      input:focus-visible,
+      select:focus-visible {
+        outline: 3px solid var(--accent);
+        outline-offset: 1px;
+      }
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .seg {
+        display: inline-flex;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .seg label {
+        flex-direction: row;
+        align-items: center;
+        padding: 7px 12px;
+        cursor: pointer;
+        color: var(--ink);
+        border-right: 1px solid var(--line);
+      }
+      .seg label:last-child {
+        border-right: 0;
+      }
+      .seg input {
+        position: absolute;
+        opacity: 0;
+        width: 1px;
+      }
+      .seg label:has(input:checked) {
+        background: var(--accent);
+        color: #fff;
+      }
+      .seg label:has(input:focus-visible) {
+        outline: 3px solid var(--accent);
+        outline-offset: -3px;
+      }
+      #sets {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      #sets li {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 5px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .total {
+        font-size: 1.6rem;
+        font-weight: 700;
+      }
+      .tierrow {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 6px 0;
+        border-bottom: 1px dashed var(--line);
+      }
+      .tierlabel {
+        width: 190px;
+        flex: none;
+        font-size: 0.9rem;
+      }
+      .tierlabel small {
+        color: var(--muted);
+        display: block;
+      }
+      .icons {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        gap: 4px;
+      }
+      .b {
+        display: inline-block;
+        border-radius: 46% 54% 50% 50% / 55% 45% 55% 45%;
+        border: 2px solid rgba(0, 0, 0, 0.35);
+      }
+      .partial {
+        display: inline-block;
+        overflow: hidden;
+        vertical-align: bottom;
+      }
+      .more {
+        font-weight: 600;
+        margin-left: 4px;
+      }
+      .bigwrap {
+        display: flex;
+        justify-content: center;
+        align-items: flex-end;
+        min-height: 120px;
+        padding: 10px 0;
+      }
+      .empty {
+        color: var(--muted);
+        font-style: italic;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Boulder Lifts</h1>
+      <p class="sub">
+        Demo build. Nothing is saved: closing or refreshing this page clears
+        everything.
+      </p>
+
+      <section class="card" aria-labelledby="addh">
+        <h2 id="addh">Log a set</h2>
+        <form id="form">
+          <label
+            >Exercise (optional)<input
+              type="text"
+              id="name"
+              placeholder="Squat"
+          /></label>
+          <label
+            >Weight per rep<input
+              type="number"
+              id="weight"
+              min="0"
+              step="any"
+              required
+          /></label>
+          <label
+            >Reps<input
+              type="number"
+              id="reps"
+              min="1"
+              step="1"
+              value="5"
+              required
+          /></label>
+          <label
+            >Sets<input
+              type="number"
+              id="setcount"
+              min="1"
+              step="1"
+              value="3"
+              required
+          /></label>
+          <span class="seg" role="radiogroup" aria-label="Weight unit">
+            <label
+              ><input type="radio" name="unit" value="lb" checked />lb</label
+            >
+            <label><input type="radio" name="unit" value="kg" />kg</label>
+          </span>
+          <button class="primary" type="submit">Add</button>
+        </form>
+        <div class="row">
+          <button type="button" id="sample">Load sample workout</button>
+          <button type="button" id="clear">Clear all</button>
+        </div>
+        <p id="err" role="alert" class="empty" style="margin: 8px 0 0"></p>
+        <ul id="sets" aria-label="Logged sets"></ul>
+      </section>
+
+      <section class="card" aria-labelledby="viewh">
+        <h2 id="viewh">Your boulders</h2>
+        <div class="row" style="margin: 0 0 12px">
+          <span class="seg" role="radiogroup" aria-label="Display mode">
+            <label
+              ><input type="radio" name="mode" value="mixed" checked />Mixed
+              pile</label
+            >
+            <label
+              ><input type="radio" name="mode" value="big" />One big
+              boulder</label
+            >
+            <label
+              ><input type="radio" name="mode" value="tier" />All one
+              tier</label
+            >
+          </span>
+          <label
+            id="tierpick"
+            hidden
+            style="flex-direction: row; align-items: center; gap: 6px"
+            >Tier
+            <select id="tier"></select>
+          </label>
+        </div>
+        <div class="total" id="total"></div>
+        <p id="summary" aria-live="polite"></p>
+        <div id="viz"></div>
+      </section>
+
+      <section class="card" aria-labelledby="legend">
+        <h2 id="legend">Tier guide (weight of one lift)</h2>
+        <div id="legendrows"></div>
+      </section>
+    </main>
+
+    <script>
+      "use strict";
+      const G = 453.59237; // grams per lb (exact: 1 lb = 0.45359237 kg)
+      const CAP = 20; // max icons drawn per row
+      const TIERS = [
+        {
+          id: "pebble",
+          name: "Pebble",
+          minLb: 0,
+          refLb: 5,
+          size: 14,
+          color: "#a8a29e",
+          range: "under 10 lb",
+        },
+        {
+          id: "stone",
+          name: "Stone",
+          minLb: 10,
+          refLb: 10,
+          size: 20,
+          color: "#8d9aa3",
+          range: "10 to under 50 lb",
+        },
+        {
+          id: "rock",
+          name: "Rock",
+          minLb: 50,
+          refLb: 50,
+          size: 28,
+          color: "#8a8f6a",
+          range: "50 to under 100 lb",
+        },
+        {
+          id: "boulder",
+          name: "Boulder",
+          minLb: 100,
+          refLb: 100,
+          size: 38,
+          color: "#9a7b5f",
+          range: "100 to under 200 lb",
+        },
+        {
+          id: "great",
+          name: "Great Boulder",
+          minLb: 200,
+          refLb: 200,
+          size: 50,
+          color: "#7a5f78",
+          range: "200 to under 300 lb",
+        },
+        {
+          id: "mono",
+          name: "Monolith",
+          minLb: 300,
+          refLb: 300,
+          size: 64,
+          color: "#4f5d75",
+          range: "300 lb and up",
+        },
+      ];
+      // thresholds use the same rounding as weight storage so exactly 100 lb is never below 100 lb
+      TIERS.forEach((t) => {
+        t.minG = Math.round(t.minLb * G);
+        t.refG = t.refLb * G;
+      });
+
+      function toGrams(value, unit) {
+        return unit === "kg" ? Math.round(value * 1000) : Math.round(value * G);
+      }
+      function tierFor(g) {
+        if (!(g > 0)) return null;
+        for (let i = TIERS.length - 1; i >= 0; i--)
+          if (g >= TIERS[i].minG) return TIERS[i];
+        return null;
+      }
+      function compute(sets) {
+        const counts = Object.fromEntries(TIERS.map((t) => [t.id, 0]));
+        let boulders = 0,
+          totalG = 0;
+        for (const s of sets) {
+          const t = tierFor(s.weightG);
+          if (!t || !(s.reps > 0)) continue; // ignore 0 weight / 0 reps
+          const n = s.reps * s.sets;
+          counts[t.id] += n;
+          boulders += n;
+          totalG += n * s.weightG;
+        }
+        return { counts, boulders, totalG };
+      }
+      function toSingleTier(totalG, tier) {
+        const whole = Math.floor(totalG / tier.refG);
+        return { whole, fraction: (totalG - whole * tier.refG) / tier.refG };
+      }
+      window.__boulders = { TIERS, tierFor, toGrams, compute, toSingleTier };
+
+      let sets = [];
+      let unit = "lb";
+      const $ = (id) => document.getElementById(id);
+      const fmt = (n, d = 1) =>
+        n.toLocaleString(undefined, { maximumFractionDigits: d });
+      const r1 = (x) => Math.round(x * 10) / 10;
+      const showWeight = (g) =>
+        unit === "kg" ? fmt(r1(g / 1000)) + " kg" : fmt(r1(g / G)) + " lb";
+      const mode = () =>
+        document.querySelector("input[name=mode]:checked").value;
+
+      function boulderEl(t, px) {
+        const e = document.createElement("span");
+        e.className = "b";
+        e.style.width = e.style.height = px + "px";
+        e.style.background = t.color;
+        e.setAttribute("aria-hidden", "true");
+        return e;
+      }
+      function iconRow(t, whole, fraction, px) {
+        const wrap = document.createElement("div");
+        wrap.className = "icons";
+        for (let i = 0; i < Math.min(whole, CAP); i++)
+          wrap.appendChild(boulderEl(t, px));
+        if (fraction > 0.01 && whole <= CAP) {
+          const p = document.createElement("span");
+          p.className = "partial";
+          p.style.width = Math.max(4, Math.round(px * fraction)) + "px";
+          p.style.height = px + "px";
+          p.setAttribute("aria-hidden", "true");
+          const inner = boulderEl(t, px);
+          p.appendChild(inner);
+          wrap.appendChild(p);
+        }
+        if (whole > CAP) {
+          const m = document.createElement("span");
+          m.className = "more";
+          m.textContent = "x " + fmt(whole, 0);
+          wrap.appendChild(m);
+        }
+        return wrap;
+      }
+
+      function render() {
+        unit = document.querySelector("input[name=unit]:checked").value;
+        const { counts, boulders, totalG } = compute(sets);
+        const viz = $("viz");
+        viz.replaceChildren();
+        $("tierpick").hidden = mode() !== "tier";
+
+        const list = $("sets");
+        list.replaceChildren();
+        sets.forEach((s, i) => {
+          const li = document.createElement("li");
+          const t = tierFor(s.weightG);
+          li.textContent =
+            (s.name || "Set") +
+            ": " +
+            s.sets +
+            " x " +
+            s.reps +
+            " at " +
+            showWeight(s.weightG) +
+            (t ? " (" + t.name + "s)" : " (not counted)");
+          const b = document.createElement("button");
+          b.type = "button";
+          b.textContent = "Remove";
+          b.setAttribute(
+            "aria-label",
+            "Remove " + (s.name || "set") + " entry " + (i + 1),
+          );
+          b.onclick = () => {
+            sets.splice(i, 1);
+            render();
+          };
+          li.appendChild(b);
+          list.appendChild(li);
+        });
+
+        if (boulders === 0) {
+          $("total").textContent = "0 " + unit;
+          $("summary").textContent =
+            "Nothing lifted yet. Log a set or load the sample workout.";
+          viz.innerHTML =
+            '<p class="empty">Your boulders will appear here.</p>';
+          return;
+        }
+        $("total").textContent = "Total lifted: " + showWeight(totalG);
+        const totalLb = totalG / G;
+
+        if (mode() === "mixed") {
+          const parts = [];
+          for (let i = TIERS.length - 1; i >= 0; i--) {
+            const t = TIERS[i],
+              n = counts[t.id];
+            if (!n) continue;
+            parts.push(fmt(n, 0) + " " + t.name + (n === 1 ? "" : "s"));
+            const row = document.createElement("div");
+            row.className = "tierrow";
+            const lab = document.createElement("div");
+            lab.className = "tierlabel";
+            lab.innerHTML =
+              "<strong>" +
+              t.name +
+              "s</strong><small>" +
+              fmt(n, 0) +
+              " boulder" +
+              (n === 1 ? "" : "s") +
+              " (" +
+              t.range +
+              ")</small>";
+            row.appendChild(lab);
+            row.appendChild(iconRow(t, n, 0, t.size));
+            viz.appendChild(row);
+          }
+          $("summary").textContent =
+            fmt(boulders, 0) +
+            " boulders (one per rep): " +
+            parts.join(", ") +
+            ".";
+        } else if (mode() === "big") {
+          const scale = Math.cbrt(totalLb / TIERS[0].refLb);
+          const px = Math.min(260, Math.max(20, TIERS[0].size * scale));
+          const wrap = document.createElement("div");
+          wrap.className = "bigwrap";
+          const big = boulderEl(TIERS[4], px);
+          big.style.background = "#6f6a64";
+          big.setAttribute("role", "img");
+          big.removeAttribute("aria-hidden");
+          big.setAttribute(
+            "aria-label",
+            "One boulder representing " + showWeight(totalG),
+          );
+          wrap.appendChild(big);
+          viz.appendChild(wrap);
+          $("summary").textContent =
+            "One boulder for " +
+            showWeight(totalG) +
+            ", about " +
+            fmt(scale, 1) +
+            " times as wide as a reference Pebble" +
+            (px >= 260 ? " (drawn smaller than true scale to fit)." : ".");
+        } else {
+          const t = TIERS.find((x) => x.id === $("tier").value) || TIERS[0];
+          const r = toSingleTier(totalG, t);
+          const wrap = document.createElement("div");
+          wrap.appendChild(iconRow(t, r.whole, r.fraction, t.size));
+          viz.appendChild(wrap);
+          $("summary").textContent =
+            "Total weight expressed in " +
+            t.name +
+            "s (1 " +
+            t.name +
+            " = " +
+            t.refLb +
+            " lb for this view): " +
+            fmt(r.whole, 0) +
+            " " +
+            t.name +
+            (r.whole === 1 ? "" : "s") +
+            " plus " +
+            fmt(r.fraction, 2) +
+            " of a " +
+            t.name +
+            ". This counts weight, not reps.";
+        }
+      }
+
+      function buildStatic() {
+        const sel = $("tier");
+        TIERS.forEach((t) => {
+          const o = document.createElement("option");
+          o.value = t.id;
+          o.textContent = t.name + "s";
+          sel.appendChild(o);
+        });
+        const rows = $("legendrows");
+        TIERS.forEach((t) => {
+          const r = document.createElement("div");
+          r.className = "tierrow";
+          const lab = document.createElement("div");
+          lab.className = "tierlabel";
+          lab.innerHTML =
+            "<strong>" + t.name + "</strong><small>" + t.range + "</small>";
+          const ic = document.createElement("div");
+          ic.className = "icons";
+          ic.appendChild(boulderEl(t, t.size));
+          r.appendChild(lab);
+          r.appendChild(ic);
+          rows.appendChild(r);
+        });
+      }
+
+      $("form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const w = parseFloat($("weight").value),
+          reps = parseInt($("reps").value, 10),
+          sc = parseInt($("setcount").value, 10);
+        const u = document.querySelector("input[name=unit]:checked").value;
+        if (!(w > 0)) {
+          $("err").textContent =
+            "Enter a weight above 0 (0 lb work is not counted).";
+          return;
+        }
+        if (!(reps > 0) || !(sc > 0)) {
+          $("err").textContent = "Reps and sets must be at least 1.";
+          return;
+        }
+        $("err").textContent = "";
+        sets.push({
+          name: $("name").value.trim(),
+          reps,
+          sets: sc,
+          weightG: toGrams(w, u),
+        });
+        $("weight").value = "";
+        $("name").value = "";
+        $("weight").focus();
+        render();
+      });
+      $("sample").onclick = () => {
+        sets = [
+          { name: "Squat", sets: 3, reps: 5, weightG: toGrams(225, "lb") },
+          {
+            name: "Bench press",
+            sets: 3,
+            reps: 8,
+            weightG: toGrams(135, "lb"),
+          },
+          { name: "Curl", sets: 3, reps: 10, weightG: toGrams(25, "lb") },
+          {
+            name: "Lateral raise",
+            sets: 3,
+            reps: 12,
+            weightG: toGrams(8, "lb"),
+          },
+        ];
+        render();
+      };
+      $("clear").onclick = () => {
+        sets = [];
+        $("err").textContent = "";
+        render();
+      };
+      document
+        .querySelectorAll("input[name=unit], input[name=mode]")
+        .forEach((i) => i.addEventListener("change", render));
+      $("tier").addEventListener("change", render);
+      buildStatic();
+      render();
+    </script>
+  </body>
+</html>
