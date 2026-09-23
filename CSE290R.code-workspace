@@ -1,0 +1,23 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../.claude"
+		},
+		{
+			"path": "../Claude outputs"
+		},
+		{
+			"path": "../demo"
+		},
+		{
+			"path": "../plans"
+		},
+		{
+			"path": "../study-agent-old"
+		}
+	],
+	"settings": {}
+}
