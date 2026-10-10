@@ -100,6 +100,8 @@ def load_mcp_tools():
     try:
         tools = asyncio.run(client.get_tools())
     except Exception as exc:  # unavailable MCP must not crash the agent
+        while isinstance(exc, BaseExceptionGroup) and exc.exceptions:
+            exc = exc.exceptions[0]  # show the real cause, not the TaskGroup wrapper
         print(f"[warning] Canvas MCP unavailable: {type(exc).__name__}: {exc}")
         return []
     print(f"[mcp] Connected. Tools: {', '.join(t.name for t in tools)}")

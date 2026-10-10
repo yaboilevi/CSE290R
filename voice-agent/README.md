@@ -21,6 +21,14 @@ CANVAS_URL=https://byui.instructure.com
 Run: `python voice_agent.py` (voice), `--text` (type, hear replies), or `--quiet` (type, no audio).
 Say "switch voice" to change personality, "exit" to quit.
 
+### Web demo page
+
+```bash
+python web_app.py
+```
+
+Open http://127.0.0.1:8765 in Chrome or Edge. The mic button listens (the browser's speech recognition), and the **Swap coach** button switches between Professor Owl and Coach Blaze and plays the new greeting. The server only listens on localhost and rejects cross-site requests. In browsers without speech recognition, a typing box appears instead.
+
 ## What the MCP exposes
 
 `canvas_mcp_server.py` is a stdio MCP server with four tools, all of which only make HTTP GET requests:

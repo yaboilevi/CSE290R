@@ -9,6 +9,7 @@ Environment (loaded from .env here or in the parent folder):
     CANVAS_URL        e.g. https://byui.instructure.com
 """
 import functools
+import html as html_lib
 import os
 import re
 from pathlib import Path
@@ -55,8 +56,8 @@ def _get(path: str, params: dict | None = None) -> list | dict:
 
 
 def _strip_html(html: str | None, limit: int = 400) -> str:
-    text = re.sub(r"<[^>]+>", " ", html or "")
-    text = re.sub(r"\s+", " ", text).strip()
+    text = html_lib.unescape(re.sub(r"<[^>]+>", " ", html or ""))
+    text = re.sub(r"[\s ]+", " ", text).replace("�", "").strip()
     return text[:limit] + ("..." if len(text) > limit else "")
 
 
