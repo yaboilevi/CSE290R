@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="../style.css" />
+    <title>Certify MCP - Canvas Voice Agent</title>
+  </head>
+  <body>
+    <nav class="topnav">
+      <div class="dropdown">
+        <button class="dropbtn">Classes &#9662;</button>
+        <div class="dropdown-content">
+          <a href="https://yaboilevi.github.io/wdd131/">WDD 131</a>
+          <a href="../index.html">CSE 290R</a>
+        </div>
+      </div>
+    </nav>
+
+    <header>
+      <h1>Canvas Voice Agent</h1>
+      <p class="subtitle">Certify MCP &mdash; Levi Miller</p>
+    </header>
+
+    <nav>
+      <h2>What it is</h2>
+      <p>
+        A voice assistant with two coaches, Professor Owl and Coach Blaze. It
+        uses a Gemini model and a read-only Canvas MCP server to answer spoken
+        questions about courses, upcoming assignments, announcements, and the
+        to-do list. It cannot submit or change anything in Canvas.
+      </p>
+
+      <h2>Try the demo</h2>
+      <p>
+        The demo runs on your own computer because it needs the Python server
+        and your Gemini and Canvas keys. In the <code>voice-agent</code>
+        folder, run:
+      </p>
+      <pre><code>python web_app.py</code></pre>
+      <ul class="link-list">
+        <li><a href="http://127.0.0.1:8765">Open the demo (server must be running)</a></li>
+      </ul>
+
+      <h2>More</h2>
+      <ul class="link-list">
+        <li><a href="README.md">README: setup, permissions, error handling</a></li>
+        <li><a href="voice_agent.py">voice_agent.py</a></li>
+        <li><a href="canvas_mcp_server.py">canvas_mcp_server.py</a></li>
+      </ul>
+    </nav>
+
+    <footer>
+      <p>&copy; 2026 Levi Miller</p>
+    </footer>
+  </body>
+</html>
