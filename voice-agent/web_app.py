@@ -16,6 +16,7 @@ from pathlib import Path
 
 import edge_tts
 
+import demo_script
 import voice_agent as va
 
 HOST, PORT = "127.0.0.1", 8765
@@ -46,7 +47,12 @@ def get_agent(key: str):
     return state["agents"][key]
 
 
-def reply_for(key: str, prompt: str) -> str:
+def reply_for(key: str, prompt: str, demo: bool = False) -> str:
+    if demo:  # scripted answers, no Gemini call
+        tools = {t.name: t for t in state["tools"]}
+        return demo_script.respond(key, prompt, tools)
+    if not os.getenv("GOOGLE_API_KEY"):
+        return "I have no Gemini key set. Turn on demo mode to try the scripted questions."
     persona = va.PERSONAS[key]
     request = (
         f"Respond as {persona['name']}. Your personality is {persona['personality']}. "
@@ -87,6 +93,7 @@ class Handler(BaseHTTPRequestHandler):
                 "personas": {k: {"name": p["name"], "title": p["title"]} for k, p in va.PERSONAS.items()},
                 "mcp_connected": bool(state["tools"]),
                 "gemini_ready": bool(os.getenv("GOOGLE_API_KEY")),
+                "demo_examples": demo_script.EXAMPLES,
             })
         else:
             self._send(404, b"not found", "text/plain")
@@ -115,7 +122,7 @@ class Handler(BaseHTTPRequestHandler):
             prompt = str(data.get("text", "")).strip()[:MAX_TEXT]
             if not prompt:
                 return self._json(400, {"error": "empty"})
-            text = reply_for(key, prompt)
+            text = reply_for(key, prompt, demo=data.get("demo") is True)
         else:
             return self._send(404, b"not found", "text/plain")
         self._json(200, {"name": persona["name"], "text": text, "audio": synth(text, persona)})
@@ -123,8 +130,7 @@ class Handler(BaseHTTPRequestHandler):
 
 def main():
     if not os.getenv("GOOGLE_API_KEY"):
-        print("Missing GEMINI_API_KEY. Add it to .env (see .env.example) and rerun.")
-        sys.exit(1)
+        print("Note: no GEMINI_API_KEY set. Only demo mode will work (add the key to .env for live AI).")
     state["tools"] = va.load_mcp_tools()
     print(f"Open http://{HOST}:{PORT} in Chrome or Edge. Ctrl+C to stop.")
     try:

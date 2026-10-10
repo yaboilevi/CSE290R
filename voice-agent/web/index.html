@@ -38,6 +38,10 @@
   #mic.live { background: var(--live); animation: pulse 1.2s infinite; }
   @keyframes pulse { 50% { box-shadow: 0 0 0 14px color-mix(in srgb, var(--live) 25%, transparent); } }
   @media (prefers-reduced-motion: reduce) { #mic.live { animation: none; } }
+  #demo[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+  .hint { color: var(--muted); font-size: .9rem; margin: 0 0 8px; text-align: center; }
+  #chipList { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  #chipList button { padding: 6px 14px; min-height: 36px; font-size: .9rem; }
   #typed { display: none; gap: 8px; }
   #typed.show { display: flex; }
   #typed input { flex: 1; font: inherit; padding: 10px 14px; border-radius: 999px; border: 1px solid var(--line);
@@ -63,6 +67,12 @@
       </svg>
     </button>
     <button id="swap">Swap coach</button>
+    <button id="demo" aria-pressed="false">Demo mode: Off</button>
+  </div>
+
+  <div id="chips" hidden>
+    <p class="hint">Demo mode: scripted answers. Speak one of these or click it.</p>
+    <div id="chipList"></div>
   </div>
 
   <form id="typed">
@@ -74,7 +84,7 @@
 <script>
 const $ = (id) => document.getElementById(id);
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let personas = {}, keys = [], current = 0, greeted = false, busy = false, recog = null, audio = null;
+let personas = {}, keys = [], current = 0, greeted = false, busy = false, recog = null, audio = null, demo = false;
 
 function add(cls, text) {
   const d = document.createElement("div");
@@ -84,7 +94,10 @@ function add(cls, text) {
   $("log").scrollTop = $("log").scrollHeight;
 }
 function status(t) { $("status").textContent = t; }
-function setBusy(b) { busy = b; $("mic").disabled = b; $("swap").disabled = b; }
+function setBusy(b) {
+  busy = b;
+  for (const el of document.querySelectorAll("#mic, #swap, #demo, #chipList button")) el.disabled = b;
+}
 
 function play(b64) {
   return new Promise((resolve) => {
@@ -121,7 +134,7 @@ async function greet() {
 async function ask(text) {
   add("you", text); setBusy(true); status("Thinking…");
   try {
-    const d = await post("/api/chat", { persona: keys[current], text });
+    const d = await post("/api/chat", { persona: keys[current], text, demo });
     add("bot", d.text);
     status("Speaking…"); await play(d.audio);
   } catch (e) { add("sys", "Something went wrong talking to the server."); }
@@ -161,6 +174,15 @@ $("swap").onclick = async () => {
   await greet();
 };
 
+$("demo").onclick = () => {
+  if (busy) return;
+  demo = !demo;
+  $("demo").setAttribute("aria-pressed", demo);
+  $("demo").textContent = "Demo mode: " + (demo ? "On" : "Off");
+  $("chips").hidden = !demo;
+  add("sys", demo ? "Demo mode on: scripted answers (live Canvas data, no Gemini)." : "Demo mode off: live Gemini answers.");
+};
+
 $("typed").onsubmit = (e) => {
   e.preventDefault();
   const v = $("typedInput").value.trim();
@@ -171,6 +193,12 @@ $("typed").onsubmit = (e) => {
   try {
     const s = await (await fetch("/api/state")).json();
     personas = s.personas; keys = Object.keys(personas); showCoach();
+    for (const q of s.demo_examples || []) {
+      const b = document.createElement("button");
+      b.textContent = q;
+      b.onclick = async () => { if (!busy) { if (!greeted) await greet(); ask(q); } };
+      $("chipList").appendChild(b);
+    }
     if (!s.mcp_connected) add("sys", "Canvas is not connected, so I can chat but not look up courses.");
     status("Press the mic to start.");
   } catch (e) { $("coach").textContent = "Server not running"; }

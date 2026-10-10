@@ -29,6 +29,8 @@ python web_app.py
 
 Open http://127.0.0.1:8765 in Chrome or Edge. The mic button listens (the browser's speech recognition), and the **Swap coach** button switches between Professor Owl and Coach Blaze and plays the new greeting. The server only listens on localhost and rejects cross-site requests. In browsers without speech recognition, a typing box appears instead.
 
+**Demo mode** (button on the page) answers from a fixed script in `demo_script.py` instead of calling Gemini, so it works without a key and is predictable for recordings. It handles the day, time, classes, what is due, announcements, "who are you", and refuses write requests. Canvas facts still come from the MCP tools, and each coach has its own wording. Click the example questions on the page or speak them.
+
 ## What the MCP exposes
 
 `canvas_mcp_server.py` is a stdio MCP server with four tools, all of which only make HTTP GET requests:
