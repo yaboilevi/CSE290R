@@ -27,7 +27,8 @@
   .msg.bot { justify-self: start; max-width: 92%; }
   .msg.sys { color: var(--muted); font-size: .9rem; border-style: dashed; }
   #status { color: var(--muted); min-height: 1.5em; text-align: center; margin: 0; }
-  .controls { display: grid; grid-template-columns: 1fr; gap: 12px; justify-items: center; }
+  .controls { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+  .controls #mic { flex-basis: 96px; margin: 0 calc(50% - 48px); }
   button { font: inherit; cursor: pointer; border-radius: 999px; border: 1px solid var(--line);
            background: transparent; color: var(--ink); padding: 12px 22px; min-height: 48px; }
   button:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
@@ -68,6 +69,7 @@
     </button>
     <button id="swap">Swap coach</button>
     <button id="demo" aria-pressed="false">Demo mode: Off</button>
+    <button id="runDemo">&#9654; Run demo</button>
   </div>
 
   <div id="chips" hidden>
@@ -84,7 +86,7 @@
 <script>
 const $ = (id) => document.getElementById(id);
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let personas = {}, keys = [], current = 0, greeted = false, busy = false, recog = null, audio = null, demo = false;
+let personas = {}, keys = [], current = 0, greeted = false, busy = false, recog = null, audio = null, demo = false, running = false, examples = [];
 
 function add(cls, text) {
   const d = document.createElement("div");
@@ -95,8 +97,9 @@ function add(cls, text) {
 }
 function status(t) { $("status").textContent = t; }
 function setBusy(b) {
-  busy = b;
-  for (const el of document.querySelectorAll("#mic, #swap, #demo, #chipList button")) el.disabled = b;
+  busy = b || running;
+  for (const el of document.querySelectorAll("#mic, #swap, #demo, #chipList button")) el.disabled = busy;
+  $("runDemo").disabled = b && !running;  // stays clickable during a run so it can be stopped
 }
 
 function play(b64) {
@@ -174,13 +177,45 @@ $("swap").onclick = async () => {
   await greet();
 };
 
-$("demo").onclick = () => {
-  if (busy) return;
-  demo = !demo;
+function setDemo(on) {
+  demo = on;
   $("demo").setAttribute("aria-pressed", demo);
   $("demo").textContent = "Demo mode: " + (demo ? "On" : "Off");
   $("chips").hidden = !demo;
+}
+
+$("demo").onclick = () => {
+  if (busy) return;
+  setDemo(!demo);
   add("sys", demo ? "Demo mode on: scripted answers (live Canvas data, no Gemini)." : "Demo mode off: live Gemini answers.");
+};
+
+const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+
+$("runDemo").onclick = async () => {
+  if (running) { running = false; $("runDemo").textContent = "Stopping…"; return; }
+  if (busy) return;
+  running = true; $("runDemo").textContent = "■ Stop demo";
+  setDemo(true);
+  add("sys", "Running the scripted demo. Press Stop to end it.");
+  const other = (current + 1) % keys.length;
+  const steps = examples.map((q) => [current, q]).concat([[other, "Who are you?"], [other, "What day is it?"]]);
+  if (!greeted) await greet();
+  let last = current;
+  for (const [who, q] of steps) {
+    if (!running) break;
+    if (who !== last) {                      // swap to the other coach for the finale
+      current = who; last = who; showCoach();
+      add("sys", "Switched to " + personas[keys[current]].name);
+      await greet();
+      if (!running) break;
+    }
+    await pause(800);
+    if (!running) break;
+    await ask(q);
+  }
+  running = false; $("runDemo").textContent = "▶ Run demo"; setBusy(false);
+  add("sys", "Demo finished.");
 };
 
 $("typed").onsubmit = (e) => {
@@ -193,7 +228,8 @@ $("typed").onsubmit = (e) => {
   try {
     const s = await (await fetch("/api/state")).json();
     personas = s.personas; keys = Object.keys(personas); showCoach();
-    for (const q of s.demo_examples || []) {
+    examples = s.demo_examples || [];
+    for (const q of examples) {
       const b = document.createElement("button");
       b.textContent = q;
       b.onclick = async () => { if (!busy) { if (!greeted) await greet(); ask(q); } };

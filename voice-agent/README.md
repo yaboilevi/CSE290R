@@ -31,6 +31,8 @@ Open http://127.0.0.1:8765 in Chrome or Edge. The mic button listens (the browse
 
 **Demo mode** (button on the page) answers from a fixed script in `demo_script.py` instead of calling Gemini, so it works without a key and is predictable for recordings. It handles the day, time, classes, what is due, announcements, "who are you", and refuses write requests. Canvas facts still come from the MCP tools, and each coach has its own wording. Click the example questions on the page or speak them.
 
+**Run demo** plays the whole script hands-free: the first coach answers every scripted question out loud, then the page swaps to the other coach for two more. It takes about two minutes, and the button turns into **Stop demo** while it runs. Good for recording the video.
+
 ## What the MCP exposes
 
 `canvas_mcp_server.py` is a stdio MCP server with four tools, all of which only make HTTP GET requests:
