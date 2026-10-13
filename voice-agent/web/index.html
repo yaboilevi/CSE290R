@@ -6,81 +6,132 @@
 <title>Canvas Voice Coach</title>
 <style>
   :root {
-    --bg: #f6f5f1; --card: #ffffff; --ink: #1d2433; --muted: #5d6678;
-    --accent: #3b5bdb; --accent-ink: #ffffff; --live: #d6336c; --line: #dcdad2;
+    --bg: #f4f2ec; --card: #ffffff; --ink: #1d2433; --muted: #5d6678; --line: #e1ded5;
+    --live: #d6336c; --ok: #2b8a3e; --warn: #b35c00;
+    --accent: #3b5bdb; --accent-ink: #ffffff; --tint: #eef1fd; --glow: #3b5bdb55;
   }
+  /* Professor Owl: night-sky indigo with an amber eye */
+  [data-coach="1"] { --accent: #3d3fa8; --accent-ink: #fff; --tint: #eeeefb; --glow: #3d3fa855; --pop: #d9931a; }
+  /* Coach Blaze: stadium orange */
+  [data-coach="2"] { --accent: #d9480f; --accent-ink: #fff; --tint: #fff1e8; --glow: #d9480f55; --pop: #f59f00; }
   @media (prefers-color-scheme: dark) {
-    :root { --bg: #14171f; --card: #1e2330; --ink: #eceef4; --muted: #9aa3b8;
-            --accent: #7c93ff; --accent-ink: #0f1220; --live: #ff6b9a; --line: #2e3446; }
+    :root { --bg: #12141b; --card: #1c202b; --ink: #eceef4; --muted: #9aa3b8; --line: #2c3243;
+            --live: #ff6b9a; --ok: #69db7c; --warn: #ffa94d; --tint: #232838; }
+    [data-coach="1"] { --accent: #8f91ff; --accent-ink: #12141b; --tint: #23243d; --glow: #8f91ff55; --pop: #f2b84b; }
+    [data-coach="2"] { --accent: #ff8a3d; --accent-ink: #12141b; --tint: #33241b; --glow: #ff8a3d55; --pop: #ffd43b; }
   }
   * { box-sizing: border-box; }
   body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink);
-         font: 16px/1.5 system-ui, sans-serif; display: grid; place-items: center; padding: 16px; }
-  main { width: 100%; max-width: 560px; background: var(--card); border: 1px solid var(--line);
-         border-radius: 16px; padding: 24px; display: grid; gap: 20px; }
-  h1 { margin: 0; font-size: 1.1rem; color: var(--muted); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
-  #coach { font-size: 1.7rem; font-weight: 700; margin: 0; }
-  #title { color: var(--muted); margin: 2px 0 0; }
-  #log { min-height: 180px; max-height: 40vh; overflow-y: auto; display: grid; gap: 10px; align-content: start; }
-  .msg { padding: 10px 14px; border-radius: 12px; border: 1px solid var(--line); white-space: pre-wrap; }
-  .msg.you { justify-self: end; background: var(--accent); color: var(--accent-ink); border-color: transparent; max-width: 85%; }
-  .msg.bot { justify-self: start; max-width: 92%; }
-  .msg.sys { color: var(--muted); font-size: .9rem; border-style: dashed; }
-  #status { color: var(--muted); min-height: 1.5em; text-align: center; margin: 0; }
-  .controls { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
-  .controls #mic { flex-basis: 96px; margin: 0 calc(50% - 48px); }
+         font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+         display: grid; place-items: center; padding: 16px; transition: background-color .4s; }
+  main { width: 100%; max-width: 640px; background: var(--card); border: 1px solid var(--line);
+         border-radius: 20px; overflow: hidden; display: grid; box-shadow: 0 10px 30px #0000000f; }
+
+  header { display: flex; gap: 18px; align-items: center; padding: 22px 24px; background: var(--tint);
+           border-bottom: 1px solid var(--line); transition: background-color .4s; }
+  .avatar { flex: none; width: 84px; height: 84px; border-radius: 50%; background: var(--accent);
+            display: grid; place-items: center; position: relative; transition: background-color .4s, transform .3s; }
+  .avatar svg { width: 60px; height: 60px; }
+  .avatar::after { content: ""; position: absolute; inset: -6px; border-radius: 50%;
+                   border: 3px solid var(--accent); opacity: 0; }
+  .avatar.speaking::after { animation: ring 1.1s ease-out infinite; }
+  .avatar.swap { transform: scale(.85) rotate(-8deg); }
+  @keyframes ring { 0% { opacity: .8; transform: scale(1); } 100% { opacity: 0; transform: scale(1.25); } }
+  .eyebrow { margin: 0; font-size: .75rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  #coach { font-size: 1.75rem; font-weight: 800; margin: 0; line-height: 1.15; color: var(--accent); transition: color .4s; }
+  #title { color: var(--muted); margin: 2px 0 8px; }
+  .badges { display: flex; flex-wrap: wrap; gap: 6px; }
+  .badge { font-size: .78rem; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--line);
+           background: var(--card); color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
+  .badge::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .badge.ok { color: var(--ok); } .badge.warn { color: var(--warn); }
+  .badge.demo { color: var(--accent); }
+
+  #log { height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 20px 24px; }
+  #log:empty::before { content: "Press the mic and ask about your classes, what is due, or announcements.";
+                       color: var(--muted); margin: auto; text-align: center; max-width: 32ch; }
+  .msg { padding: 10px 14px; border-radius: 16px; white-space: pre-wrap; max-width: 85%; animation: in .25s ease-out; }
+  @keyframes in { from { opacity: 0; transform: translateY(6px); } }
+  .msg.you { align-self: flex-end; background: var(--accent); color: var(--accent-ink); border-bottom-right-radius: 4px; }
+  .msg.bot { align-self: flex-start; background: var(--tint); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+  .msg.bot .who { display: block; font-size: .72rem; font-weight: 700; letter-spacing: .06em; color: var(--muted); margin-bottom: 2px; }
+  .msg.sys { align-self: center; color: var(--muted); font-size: .85rem; padding: 2px 10px; max-width: 100%; text-align: center; }
+
+  footer { border-top: 1px solid var(--line); padding: 16px 24px 22px; display: grid; gap: 14px; }
+  #status { color: var(--muted); min-height: 1.5em; text-align: center; margin: 0; font-size: .95rem; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-items: center; }
   button { font: inherit; cursor: pointer; border-radius: 999px; border: 1px solid var(--line);
-           background: transparent; color: var(--ink); padding: 12px 22px; min-height: 48px; }
+           background: var(--card); color: var(--ink); padding: 10px 18px; min-height: 44px; transition: background-color .2s, border-color .2s; }
+  button:hover:not(:disabled) { border-color: var(--accent); }
   button:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
-  button:disabled { opacity: .5; cursor: not-allowed; }
-  #mic { width: 96px; height: 96px; padding: 0; background: var(--accent); color: var(--accent-ink);
-         border: none; display: grid; place-items: center; }
-  #mic svg { width: 40px; height: 40px; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  #mic { width: 84px; height: 84px; padding: 0; background: var(--accent); color: var(--accent-ink);
+         border: none; display: grid; place-items: center; box-shadow: 0 6px 18px var(--glow); }
+  #mic svg { width: 36px; height: 36px; }
   #mic.live { background: var(--live); animation: pulse 1.2s infinite; }
   @keyframes pulse { 50% { box-shadow: 0 0 0 14px color-mix(in srgb, var(--live) 25%, transparent); } }
-  @media (prefers-reduced-motion: reduce) { #mic.live { animation: none; } }
   #demo[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
-  .hint { color: var(--muted); font-size: .9rem; margin: 0 0 8px; text-align: center; }
+  #runDemo.running { background: var(--live); color: #fff; border-color: transparent; }
+  #chips[hidden] { display: none; }
+  .hint { color: var(--muted); font-size: .85rem; margin: 0 0 8px; text-align: center; }
   #chipList { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
-  #chipList button { padding: 6px 14px; min-height: 36px; font-size: .9rem; }
+  #chipList button { padding: 4px 12px; min-height: 34px; font-size: .88rem; background: var(--tint); }
   #typed { display: none; gap: 8px; }
   #typed.show { display: flex; }
   #typed input { flex: 1; font: inherit; padding: 10px 14px; border-radius: 999px; border: 1px solid var(--line);
-                 background: transparent; color: var(--ink); min-width: 0; }
+                 background: var(--card); color: var(--ink); min-width: 0; }
+  @media (max-width: 480px) {
+    header { padding: 18px 16px; gap: 14px; } .avatar { width: 64px; height: 64px; } .avatar svg { width: 44px; height: 44px; }
+    #coach { font-size: 1.4rem; } #log { padding: 16px; height: 50vh; } footer { padding: 14px 16px 18px; }
+    #mic { order: -1; margin: 0 calc(50% - 42px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
 </style>
 </head>
-<body>
+<body data-coach="1">
 <main>
   <header>
-    <h1>Canvas Voice Coach</h1>
-    <p id="coach">Loading…</p>
-    <p id="title"></p>
+    <div class="avatar" id="avatar" aria-hidden="true"></div>
+    <div>
+      <p class="eyebrow">Canvas Voice Coach</p>
+      <p id="coach">Loading…</p>
+      <p id="title"></p>
+      <div class="badges">
+        <span class="badge" id="bCanvas">Canvas</span>
+        <span class="badge" id="bGemini">Gemini</span>
+        <span class="badge demo" id="bDemo" hidden>Demo mode</span>
+      </div>
+    </div>
   </header>
 
   <div id="log" aria-live="polite"></div>
-  <p id="status"></p>
 
-  <div class="controls">
-    <button id="mic" aria-label="Talk to the coach" title="Talk">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <rect x="9" y="2" width="6" height="12" rx="3"></rect>
-        <path d="M5 11a7 7 0 0 0 14 0M12 18v4"></path>
-      </svg>
-    </button>
-    <button id="swap">Swap coach</button>
-    <button id="demo" aria-pressed="false">Demo mode: Off</button>
-    <button id="runDemo">&#9654; Run demo</button>
-  </div>
+  <footer>
+    <p id="status"></p>
+    <div class="row">
+      <button id="swap">⇄ Swap coach</button>
+      <button id="mic" aria-label="Talk to the coach" title="Talk">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="9" y="2" width="6" height="12" rx="3"></rect>
+          <path d="M5 11a7 7 0 0 0 14 0M12 18v4"></path>
+        </svg>
+      </button>
+      <button id="runDemo">▶ Run demo</button>
+    </div>
+    <div class="row"><button id="demo" aria-pressed="false">Demo mode: Off</button></div>
 
-  <div id="chips" hidden>
-    <p class="hint">Demo mode: scripted answers. Speak one of these or click it.</p>
-    <div id="chipList"></div>
-  </div>
+    <div id="chips" hidden>
+      <p class="hint">Scripted answers with live Canvas data. Speak one of these or click it.</p>
+      <div id="chipList"></div>
+    </div>
 
-  <form id="typed">
-    <input id="typedInput" placeholder="Speech recognition not supported here. Type instead." aria-label="Type a message" autocomplete="off">
-    <button type="submit">Send</button>
-  </form>
+    <form id="typed">
+      <input id="typedInput" placeholder="Type a question" aria-label="Type a message" autocomplete="off">
+      <button type="submit">Send</button>
+    </form>
+  </footer>
 </main>
 
 <script>
@@ -88,10 +139,25 @@ const $ = (id) => document.getElementById(id);
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let personas = {}, keys = [], current = 0, greeted = false, busy = false, recog = null, audio = null, demo = false, running = false, examples = [];
 
-function add(cls, text) {
+// Simple original drawings for each coach (picked by persona key).
+const AVATARS = {
+  "1": `<svg viewBox="0 0 64 64" aria-hidden="true">
+          <path d="M14 18 L20 6 L26 16 Q32 13 38 16 L44 6 L50 18 Q56 28 54 40 Q50 58 32 58 Q14 58 10 40 Q8 28 14 18Z" fill="#fff" opacity=".95"/>
+          <circle cx="23" cy="30" r="8" style="fill:var(--pop)"/><circle cx="41" cy="30" r="8" style="fill:var(--pop)"/>
+          <circle cx="23" cy="30" r="3.5" fill="#1d2433"/><circle cx="41" cy="30" r="3.5" fill="#1d2433"/>
+          <path d="M29 38 L32 44 L35 38Z" style="fill:var(--pop)"/>
+          <path d="M22 50 Q32 54 42 50" style="stroke:var(--accent)" stroke-width="2" fill="none" opacity=".5"/></svg>`,
+  "2": `<svg viewBox="0 0 64 64" aria-hidden="true">
+          <path d="M32 4 C36 16 50 20 50 38 C50 50 42 60 32 60 C22 60 14 50 14 38 C14 28 20 24 22 16 C26 22 26 26 28 28 C30 20 28 12 32 4Z" fill="#fff" opacity=".95"/>
+          <path d="M32 26 C35 33 42 36 42 45 C42 52 37 56 32 56 C27 56 22 52 22 45 C22 40 26 38 27 33 C29 36 30 38 31 38 C32 34 31 30 32 26Z" style="fill:var(--pop)"/></svg>`,
+};
+
+function add(cls, text, who) {
   const d = document.createElement("div");
   d.className = "msg " + cls;
-  d.textContent = text;
+  if (cls === "bot") d.dataset.coach = keys[current];
+  if (who) { const w = document.createElement("span"); w.className = "who"; w.textContent = who; d.appendChild(w); }
+  d.appendChild(document.createTextNode(text));
   $("log").appendChild(d);
   $("log").scrollTop = $("log").scrollHeight;
 }
@@ -107,8 +173,10 @@ function play(b64) {
     if (!b64) return resolve();
     if (audio) audio.pause();
     audio = new Audio("data:audio/mpeg;base64," + b64);
-    audio.onended = audio.onerror = () => resolve();
-    audio.play().catch(resolve);
+    const done = () => { $("avatar").classList.remove("speaking"); resolve(); };
+    audio.onended = audio.onerror = done;
+    $("avatar").classList.add("speaking");
+    audio.play().catch(done);
   });
 }
 
@@ -119,16 +187,23 @@ async function post(path, body) {
 }
 
 function showCoach() {
-  const p = personas[keys[current]];
+  const key = keys[current], p = personas[key];
+  document.body.dataset.coach = key;
+  $("avatar").innerHTML = AVATARS[key] || "";
   $("coach").textContent = p.name;
   $("title").textContent = p.title;
+}
+
+function badge(id, ok, text) {
+  $(id).textContent = text;
+  $(id).className = "badge " + (ok ? "ok" : "warn");
 }
 
 async function greet() {
   setBusy(true); status("Waking up…");
   try {
     const d = await post("/api/greeting", { persona: keys[current] });
-    add("bot", d.text); greeted = true;
+    add("bot", d.text, d.name); greeted = true;
     status("Speaking…"); await play(d.audio);
   } catch (e) { add("sys", "Could not reach the server. Is web_app.py running?"); }
   status(""); setBusy(false);
@@ -138,16 +213,16 @@ async function ask(text) {
   add("you", text); setBusy(true); status("Thinking…");
   try {
     const d = await post("/api/chat", { persona: keys[current], text, demo });
-    add("bot", d.text);
+    add("bot", d.text, d.name);
     status("Speaking…"); await play(d.audio);
   } catch (e) { add("sys", "Something went wrong talking to the server."); }
-  status(""); setBusy(false);
+  status(running ? "" : "Press the mic to ask another question."); setBusy(false);
 }
 
 function listen() {
   recog = new SR();
   recog.lang = "en-US"; recog.interimResults = false; recog.maxAlternatives = 1;
-  $("mic").classList.add("live"); status("Listening…");
+  $("mic").classList.add("live"); status("Listening… (click again to stop)");
   let heard = "";
   recog.onresult = (e) => { heard = e.results[0][0].transcript; };
   recog.onerror = (e) => {
@@ -163,18 +238,24 @@ function listen() {
 }
 
 $("mic").onclick = async () => {
-  if (busy) return;
   if (recog && $("mic").classList.contains("live")) { recog.stop(); return; }
+  if (busy) return;
   if (!greeted) await greet();
-  if (SR) listen(); else $("typed").classList.add("show");
+  if (SR) listen(); else { $("typed").classList.add("show"); $("typedInput").focus(); }
 };
+
+async function switchTo(i) {
+  $("avatar").classList.add("swap");
+  await pause(150);
+  current = i; showCoach();
+  $("avatar").classList.remove("swap");
+  add("sys", "Switched to " + personas[keys[current]].name);
+  await greet();
+}
 
 $("swap").onclick = async () => {
   if (busy) return;
-  current = (current + 1) % keys.length;
-  showCoach();
-  add("sys", "Switched to " + personas[keys[current]].name);
-  await greet();
+  await switchTo((current + 1) % keys.length);
 };
 
 function setDemo(on) {
@@ -182,6 +263,7 @@ function setDemo(on) {
   $("demo").setAttribute("aria-pressed", demo);
   $("demo").textContent = "Demo mode: " + (demo ? "On" : "Off");
   $("chips").hidden = !demo;
+  $("bDemo").hidden = !demo;
 }
 
 $("demo").onclick = () => {
@@ -195,27 +277,24 @@ const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 $("runDemo").onclick = async () => {
   if (running) { running = false; $("runDemo").textContent = "Stopping…"; return; }
   if (busy) return;
-  running = true; $("runDemo").textContent = "■ Stop demo";
+  running = true; $("runDemo").textContent = "■ Stop demo"; $("runDemo").classList.add("running");
   setDemo(true);
   add("sys", "Running the scripted demo. Press Stop to end it.");
   const other = (current + 1) % keys.length;
   const steps = examples.map((q) => [current, q]).concat([[other, "Who are you?"], [other, "What day is it?"]]);
   if (!greeted) await greet();
-  let last = current;
   for (const [who, q] of steps) {
     if (!running) break;
-    if (who !== last) {                      // swap to the other coach for the finale
-      current = who; last = who; showCoach();
-      add("sys", "Switched to " + personas[keys[current]].name);
-      await greet();
+    if (who !== current) {                   // swap to the other coach for the finale
+      await switchTo(who);
       if (!running) break;
     }
     await pause(800);
     if (!running) break;
     await ask(q);
   }
-  running = false; $("runDemo").textContent = "▶ Run demo"; setBusy(false);
-  add("sys", "Demo finished.");
+  running = false; $("runDemo").textContent = "▶ Run demo"; $("runDemo").classList.remove("running"); setBusy(false);
+  add("sys", "Demo finished."); status("Press the mic to start.");
 };
 
 $("typed").onsubmit = (e) => {
@@ -235,10 +314,13 @@ $("typed").onsubmit = (e) => {
       b.onclick = async () => { if (!busy) { if (!greeted) await greet(); ask(q); } };
       $("chipList").appendChild(b);
     }
+    badge("bCanvas", s.mcp_connected, s.mcp_connected ? "Canvas connected" : "Canvas offline");
+    badge("bGemini", s.gemini_ready, s.gemini_ready ? "Gemini ready" : "No Gemini key");
     if (!s.mcp_connected) add("sys", "Canvas is not connected, so I can chat but not look up courses.");
+    if (!s.gemini_ready) { setDemo(true); add("sys", "No Gemini key found, so demo mode is on."); }
     status("Press the mic to start.");
-  } catch (e) { $("coach").textContent = "Server not running"; }
-  if (!SR) $("typed").classList.add("show");
+  } catch (e) { $("coach").textContent = "Server not running"; $("title").textContent = "Start it with: python web_app.py"; }
+  if (!SR) { $("typed").classList.add("show"); $("typedInput").placeholder = "Speech recognition isn't supported here. Type instead."; }
 })();
 </script>
 </body>
