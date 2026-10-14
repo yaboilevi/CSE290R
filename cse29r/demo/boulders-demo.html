@@ -2,118 +2,158 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Boulder Lifts - Demo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#f6f4f1" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1c1a18" media="(prefers-color-scheme: dark)" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Boulder Lifts</title>
     <link rel="stylesheet" href="boulders-demo.css" />
     <script src="boulders-demo.js" defer></script>
   </head>
   <body>
-    <main>
-      <h1>Boulder Lifts</h1>
-      <p class="sub">
-        Demo build. Nothing is saved: closing or refreshing this page clears
-        everything. 1 Pebble = 1 lb lifted (weight x reps x sets).
-      </p>
+    <div class="app">
+      <header class="topbar">
+        <h1>Boulder Lifts</h1>
+        <span class="badge" title="Nothing is saved: refreshing clears everything">Demo</span>
+      </header>
 
-      <section class="card" aria-labelledby="profh">
-        <h2 id="profh">Your ladder</h2>
+      <!-- ===== Lift (home): boulder -> goal -> lift entry ===== -->
+      <main class="view" id="view-lift" aria-labelledby="tab-lift">
+        <section class="hero" aria-label="What you lifted">
+          <div class="hero-boulder" id="rankicon"></div>
+          <div class="eyebrow">You lifted</div>
+          <div class="rankname" id="rankname" aria-live="polite"></div>
+          <div class="ranktotal" id="ranktotal"></div>
+        </section>
+
+        <section class="goal" aria-label="Goal: next rank" id="progress"></section>
+      </main>
+
+      <!-- ===== Log: sets in this session ===== -->
+      <section class="view" id="view-log" aria-labelledby="tab-log" hidden>
+        <h2>This session</h2>
+        <p class="note">Nothing is saved: refreshing the page clears everything.</p>
+        <ul id="sets" class="list" aria-label="Logged sets"></ul>
+        <div class="row">
+          <button type="button" class="btn" id="sample">Load sample workout</button>
+          <button type="button" class="btn" id="sampleYear">Load a year of training</button>
+          <button type="button" class="btn" id="clear">Clear all</button>
+        </div>
+      </section>
+
+      <!-- ===== Ladder: personal scale ===== -->
+      <section class="view" id="view-ladder" aria-labelledby="tab-ladder" hidden>
+        <h2>Your ladder</h2>
         <p class="note">
           Optional. Ranks are sized to you so they take a similar effort for
           everyone. Leave blank for the standard ladder.
         </p>
-        <form id="profile">
-          <label>
-            Age
-            <input type="number" id="age" min="18" max="100" step="1" placeholder="25" />
+        <form id="profile" class="stack">
+          <label class="field">
+            <span>Age</span>
+            <input type="number" id="age" inputmode="numeric" min="18" max="100" step="1" placeholder="25" />
           </label>
-          <span class="seg" role="radiogroup" aria-label="Sex">
-            <label><input type="radio" name="sex" value="" checked />Not set</label>
-            <label><input type="radio" name="sex" value="M" />M</label>
-            <label><input type="radio" name="sex" value="F" />F</label>
-          </span>
-          <label>
-            Bodyweight
-            <input type="number" id="bw" min="0" step="any" placeholder="180" />
-          </label>
-          <span class="seg" role="radiogroup" aria-label="Bodyweight unit">
-            <label><input type="radio" name="bwunit" value="lb" checked />lb</label>
-            <label><input type="radio" name="bwunit" value="kg" />kg</label>
-          </span>
+          <div class="field">
+            <span id="sexlbl">Sex</span>
+            <span class="seg" role="radiogroup" aria-labelledby="sexlbl">
+              <label><input type="radio" name="sex" value="" checked />Not set</label>
+              <label><input type="radio" name="sex" value="M" />M</label>
+              <label><input type="radio" name="sex" value="F" />F</label>
+            </span>
+          </div>
+          <div class="field">
+            <label for="bw">Bodyweight</label>
+            <div class="inline">
+              <input type="number" id="bw" inputmode="decimal" min="0" step="any" placeholder="180" />
+              <span class="seg" role="radiogroup" aria-label="Bodyweight unit">
+                <label><input type="radio" name="bwunit" value="lb" checked />lb</label>
+                <label><input type="radio" name="bwunit" value="kg" />kg</label>
+              </span>
+            </div>
+          </div>
         </form>
         <p id="scaleinfo" class="msg" aria-live="polite"></p>
-        <p id="scaleerr" class="msg empty" role="alert"></p>
+        <p id="scaleerr" class="msg error" role="alert"></p>
       </section>
 
-      <section class="card" aria-labelledby="addh">
-        <h2 id="addh">Log a set</h2>
-        <form id="form">
-          <label>
-            Exercise (optional)
-            <input type="text" id="name" placeholder="Squat" />
-          </label>
-          <label>
-            Weight
-            <input type="number" id="weight" min="0" step="any" placeholder="135" required />
-          </label>
-          <label>
-            Reps
-            <input type="number" id="reps" min="1" step="1" value="5" required />
-          </label>
-          <label>
-            Sets
-            <input type="number" id="setcount" min="1" step="1" value="3" required />
-          </label>
-          <span class="seg" role="radiogroup" aria-label="Weight unit">
-            <label><input type="radio" name="unit" value="lb" checked />lb</label>
-            <label><input type="radio" name="unit" value="kg" />kg</label>
-          </span>
-          <button class="primary" type="submit">Add</button>
-        </form>
-        <div class="row">
-          <button type="button" id="sample">Load sample workout</button>
-          <button type="button" id="sampleYear">Load a year of training</button>
-          <button type="button" id="clear">Clear all</button>
-        </div>
-        <p id="err" class="msg empty" role="alert"></p>
-        <ul id="sets" aria-label="Logged sets"></ul>
-      </section>
-
-      <section class="card" aria-labelledby="rankh">
-        <h2 id="rankh">Your rank</h2>
-        <div class="rankhead">
-          <span id="rankicon"></span>
-          <div>
-            <div class="rankname" id="rankname"></div>
-            <small id="ranktotal"></small>
-          </div>
-        </div>
-        <p class="holdings" id="holdings" aria-live="polite"></p>
-        <p class="flash" id="flash" role="status" hidden></p>
-      </section>
-
-      <section class="card" aria-labelledby="progh">
-        <h2 id="progh">Until you rank up</h2>
-        <div id="progress"></div>
+      <!-- ===== Ranks: per-level progress + guide ===== -->
+      <section class="view" id="view-ranks" aria-labelledby="tab-ranks" hidden>
+        <h2>Ranks</h2>
         <div class="ladder" id="ladder" aria-label="Progress toward the next of each level"></div>
-      </section>
-
-      <section class="card" aria-labelledby="guideh">
-        <h2 id="guideh">Rank guide</h2>
+        <h3>Rank guide</h3>
         <p class="note">
           Placeholder values. The Stone size changes with your ladder; every
-          rank above it is a fixed number of the one below.
+          rank above it is a fixed number of the one below. 1 Pebble = 1 lb
+          lifted (weight x reps x sets).
         </p>
         <table>
           <thead>
             <tr>
               <th>Rank</th>
               <th>Made of</th>
-              <th class="hide-sm">Total lifted</th>
+              <th>Total lifted</th>
             </tr>
           </thead>
           <tbody id="guide"></tbody>
         </table>
       </section>
-    </main>
+
+      <!-- ===== Lift entry: docked above the tab bar on the Lift tab ===== -->
+      <form id="form" class="entry" aria-label="Log a lift">
+        <input type="text" id="name" class="entry-name" placeholder="Exercise (optional)" aria-label="Exercise (optional)" autocomplete="off" />
+        <div class="entry-nums">
+          <label class="num-field weight">
+            <span>Weight</span>
+            <input type="number" id="weight" inputmode="decimal" min="0" step="any" placeholder="135" />
+          </label>
+          <div class="num-field">
+            <span id="repslbl">Reps</span>
+            <div class="stepper" role="group" aria-labelledby="repslbl">
+              <button type="button" data-step="reps" data-dir="-1" aria-label="Fewer reps">−</button>
+              <input type="number" id="reps" inputmode="numeric" min="1" step="1" value="5" aria-labelledby="repslbl" />
+              <button type="button" data-step="reps" data-dir="1" aria-label="More reps">+</button>
+            </div>
+          </div>
+          <div class="num-field">
+            <span id="setslbl">Sets</span>
+            <div class="stepper" role="group" aria-labelledby="setslbl">
+              <button type="button" data-step="setcount" data-dir="-1" aria-label="Fewer sets">−</button>
+              <input type="number" id="setcount" inputmode="numeric" min="1" step="1" value="3" aria-labelledby="setslbl" />
+              <button type="button" data-step="setcount" data-dir="1" aria-label="More sets">+</button>
+            </div>
+          </div>
+        </div>
+        <div class="entry-actions">
+          <span class="seg" role="radiogroup" aria-label="Weight unit">
+            <label><input type="radio" name="unit" value="lb" checked />lb</label>
+            <label><input type="radio" name="unit" value="kg" />kg</label>
+          </span>
+          <button class="primary add" type="submit">Add lift</button>
+        </div>
+        <p id="err" class="msg error" role="alert"></p>
+      </form>
+
+      <!-- ===== Bottom tab bar ===== -->
+      <nav class="tabbar" role="tablist" aria-label="Sections">
+        <button role="tab" id="tab-lift" data-view="lift" aria-controls="view-lift" aria-selected="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17c-1-4 1-9 6-10 5-1 9 2 8 7-1 4-4 5-8 5s-5-1-6-2z" /></svg>
+          Lift
+        </button>
+        <button role="tab" id="tab-log" data-view="log" aria-controls="view-log" aria-selected="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" /></svg>
+          Log <span class="count" id="logcount" hidden></span>
+        </button>
+        <button role="tab" id="tab-ladder" data-view="ladder" aria-controls="view-ladder" aria-selected="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8M16 5v4M10 15v4" /></svg>
+          Ladder
+        </button>
+        <button role="tab" id="tab-ranks" data-view="ranks" aria-controls="view-ranks" aria-selected="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4v-6H4zM10 20h4V9h-4zM16 20h4V4h-4z" /></svg>
+          Ranks
+        </button>
+      </nav>
+
+      <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+    </div>
   </body>
 </html>

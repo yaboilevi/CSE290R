@@ -1,4 +1,7 @@
-/* Boulder Lifts demo styles */
+/* Boulder Lifts demo styles: phone-first app shell.
+ * Layout: top bar / scrolling view / lift entry docked above a bottom tab bar.
+ * On wider screens the app stays a centered phone-width column.
+ */
 
 /* ---------- Theme ---------- */
 :root {
@@ -10,6 +13,13 @@
   --accent: #8a5a2b;
   --on-accent: #fff;
   --track: #ece7e1;
+  --error: #a33a2a;
+  --shadow: 0 -4px 18px rgba(0, 0, 0, 0.08);
+
+  --app-w: 520px;
+  --tap: 44px; /* minimum touch target */
+  --tabbar-h: calc(58px + env(safe-area-inset-bottom));
+  --entry-h: 0px; /* set from JS to the docked entry's real height */
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -21,6 +31,8 @@
     --accent: #d9a066;
     --on-accent: #1c1a18;
     --track: #34302c;
+    --error: #f08a78;
+    --shadow: 0 -4px 18px rgba(0, 0, 0, 0.4);
   }
 }
 
@@ -28,91 +40,135 @@
 * {
   box-sizing: border-box;
 }
+html {
+  -webkit-text-size-adjust: 100%;
+}
 body {
   margin: 0;
-  font: 16px/1.45 system-ui, "Segoe UI", sans-serif;
+  font: 16px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
   background: var(--bg);
   color: var(--ink);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
 }
-main {
-  max-width: 860px;
-  margin: 0 auto;
-  padding: 16px;
-}
-h1 {
-  font-size: 1.5rem;
-  margin: 8px 0 2px;
+h1,
+h2,
+h3 {
+  margin: 0;
 }
 h2 {
+  font-size: 1.25rem;
+  margin-bottom: 6px;
+}
+h3 {
   font-size: 1.05rem;
-  margin: 0 0 10px;
-}
-.sub {
-  color: var(--muted);
-  margin: 0 0 16px;
-}
-.card {
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 14px;
-  margin-bottom: 14px;
-}
-.muted {
-  color: var(--muted);
+  margin: 22px 0 6px;
 }
 .note {
   color: var(--muted);
   font-size: 0.9rem;
-  margin: 0 0 10px;
+  margin: 0 0 14px;
 }
 .small {
   font-size: 0.85rem;
 }
-.empty {
+.muted {
   color: var(--muted);
-  font-style: italic;
 }
 .msg {
   margin: 8px 0 0;
 }
+.msg:empty {
+  display: none;
+}
+.error {
+  color: var(--error);
+  font-size: 0.9rem;
+}
 
-/* ---------- Forms ---------- */
-form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: flex-end;
+/* ---------- App shell ---------- */
+.app {
+  max-width: var(--app-w);
+  margin: 0 auto;
+  min-height: 100vh;
+  min-height: 100dvh;
 }
-label {
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
   display: flex;
-  flex-direction: column;
-  font-size: 0.85rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(10px + env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 10px
+    max(16px, env(safe-area-inset-left));
+  background: var(--bg);
+}
+.topbar h1 {
+  font-size: 1.15rem;
+}
+.badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
   color: var(--muted);
-  gap: 3px;
 }
+.view {
+  padding: 4px max(16px, env(safe-area-inset-right)) calc(var(--tabbar-h) + 24px)
+    max(16px, env(safe-area-inset-left));
+}
+#view-lift {
+  padding-bottom: calc(var(--tabbar-h) + var(--entry-h) + 16px);
+}
+
+/* ---------- Controls ---------- */
 input,
 button {
   font: inherit;
-  padding: 7px 9px;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  background: var(--card);
+  font-size: 16px; /* 16px+ stops iOS zooming into inputs */
   color: var(--ink);
 }
-input[type="number"] {
-  width: 96px;
+input {
+  min-height: var(--tap);
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+  width: 100%;
 }
-input[type="text"] {
-  width: 150px;
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 button {
   cursor: pointer;
+  touch-action: manipulation;
 }
-button.primary {
+.btn {
+  min-height: var(--tap);
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+}
+.primary {
+  min-height: var(--tap);
+  padding: 8px 16px;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
   background: var(--accent);
   color: var(--on-accent);
-  border-color: var(--accent);
+  font-weight: 700;
+}
+button:active {
+  transform: scale(0.98);
 }
 button:focus-visible,
 input:focus-visible {
@@ -123,22 +179,45 @@ input:focus-visible {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 10px;
+  margin-top: 14px;
+}
+.stack {
+  display: grid;
+  gap: 14px;
+}
+.field {
+  display: grid;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.inline {
+  display: flex;
+  gap: 8px;
+}
+.inline input {
+  flex: 1;
 }
 
 /* segmented radio buttons */
 .seg {
   display: inline-flex;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 10px;
   overflow: hidden;
+  background: var(--card);
+  flex: none;
 }
 .seg label {
-  flex-direction: row;
+  display: flex;
   align-items: center;
-  padding: 7px 12px;
+  justify-content: center;
+  min-height: var(--tap);
+  min-width: var(--tap);
+  padding: 0 12px;
   cursor: pointer;
   color: var(--ink);
+  font-size: 0.95rem;
   border-right: 1px solid var(--line);
 }
 .seg label:last-child {
@@ -148,29 +227,16 @@ input:focus-visible {
   position: absolute;
   opacity: 0;
   width: 1px;
+  min-height: 0;
 }
 .seg label:has(input:checked) {
   background: var(--accent);
   color: var(--on-accent);
+  font-weight: 600;
 }
 .seg label:has(input:focus-visible) {
   outline: 3px solid var(--accent);
   outline-offset: -3px;
-}
-
-/* logged sets */
-#sets {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-#sets li {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 0;
-  border-bottom: 1px solid var(--line);
 }
 
 /* ---------- Boulder blob ---------- */
@@ -180,45 +246,118 @@ input:focus-visible {
   border-radius: 46% 54% 50% 50% / 55% 45% 55% 45%;
   border: 2px solid rgba(0, 0, 0, 0.35);
 }
+.b.none {
+  background: transparent !important;
+  border: 3px dashed var(--line);
+}
 
-/* ---------- Your rank ---------- */
-.rankhead {
+/* ---------- Lift tab: hero ---------- */
+.hero {
+  text-align: center;
+  padding: 8px 0 4px;
+}
+.hero-boulder {
+  --hero: 168px;
+  height: var(--hero);
   display: flex;
-  align-items: center;
-  gap: 14px;
+  align-items: flex-end;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+.hero-boulder .b {
+  border-width: 3px;
+  box-shadow: inset -10px -14px 0 rgba(0, 0, 0, 0.12), 0 10px 18px -12px rgba(0, 0, 0, 0.5);
+  width: calc(var(--hero) * var(--f, 1));
+  height: calc(var(--hero) * var(--f, 1));
+  transition: width 0.4s ease, height 0.4s ease;
+}
+.eyebrow {
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 .rankname {
-  font-size: 1.6rem;
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+.rankname .rest {
+  font-size: 0.7em;
   font-weight: 700;
-  line-height: 1.1;
-}
-.rankhead small {
-  display: block;
   color: var(--muted);
+  white-space: nowrap;
 }
-.holdings {
-  margin: 12px 0 0;
-  font-size: 1.05rem;
-}
-.flash {
-  margin: 10px 0 0;
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: var(--accent);
-  color: var(--on-accent);
-  font-weight: 600;
+.ranktotal {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin-top: 2px;
 }
 
-/* ---------- Progress ---------- */
-.nexthead {
+/* ---------- Lift tab: goal ---------- */
+.goal {
+  margin-top: 18px;
+  padding: 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+.goal-top {
   display: flex;
   align-items: center;
   gap: 10px;
 }
+.goal-label {
+  flex: 1;
+  min-width: 0;
+}
+.goal-label strong {
+  display: block;
+  color: var(--ink);
+  font-size: 1rem;
+}
 .togo {
-  font-size: 1.35rem;
+  font-size: 1.3rem;
+  font-weight: 800;
+  line-height: 1.2;
+  margin: 6px 0 10px;
+}
+.goal-hint {
+  margin-top: 2px;
+}
+
+/* goal unit switch: [Rocks | lb] */
+.unit-switch {
+  display: inline-flex;
+  flex: none;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--track);
+}
+.unit-switch button {
+  position: relative;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  font-size: 0.85rem;
   font-weight: 700;
-  margin: 2px 0 8px;
+  white-space: nowrap;
+}
+.unit-switch button::after {
+  /* invisible 44px-tall tap area around the 34px pill */
+  content: "";
+  position: absolute;
+  inset: -5px 0;
+}
+.unit-switch button[aria-pressed="true"] {
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
 }
 .bar {
   height: 14px;
@@ -243,22 +382,198 @@ input:focus-visible {
   gap: 8px;
   font-size: 0.85rem;
   color: var(--muted);
-  margin-top: 4px;
+  margin-top: 6px;
 }
-.ladder {
-  margin-top: 16px;
-  border-top: 1px solid var(--line);
-  padding-top: 10px;
+.goal-empty {
+  margin: 0;
+  text-align: center;
 }
-.ladder-cap {
-  margin-bottom: 4px;
+.goal-empty .btn {
+  margin-top: 10px;
 }
-.rung {
+
+/* ---------- Lift entry (docked) ---------- */
+.entry {
+  position: fixed;
+  z-index: 6;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: var(--tabbar-h);
+  width: min(100%, var(--app-w));
   display: grid;
-  grid-template-columns: 22px 120px 1fr 92px;
+  gap: 8px;
+  padding: 12px max(14px, env(safe-area-inset-right)) 10px max(14px, env(safe-area-inset-left));
+  background: var(--card);
+  border-top: 1px solid var(--line);
+  border-radius: 18px 18px 0 0;
+  box-shadow: var(--shadow);
+}
+body:not([data-view="lift"]) .entry {
+  display: none;
+}
+.entry-nums {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr 1.25fr;
+  gap: 8px;
+}
+.num-field {
+  display: grid;
+  gap: 2px;
+  font-size: 0.75rem;
+  color: var(--muted);
+  min-width: 0;
+}
+.num-field input {
+  text-align: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+  padding: 6px 4px;
+}
+.stepper {
+  display: flex;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--card);
+}
+.stepper input {
+  border: 0;
+  border-radius: 0;
+  min-width: 0;
+  padding: 6px 0;
+}
+.stepper button {
+  flex: none;
+  width: 36px;
+  min-height: var(--tap);
+  border: 0;
+  background: var(--track);
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+.entry-actions {
+  display: flex;
+  gap: 8px;
+}
+.entry-actions .add {
+  flex: 1;
+  font-size: 1.05rem;
+}
+
+/* ---------- Bottom tab bar ---------- */
+.tabbar {
+  position: fixed;
+  z-index: 7;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 0;
+  width: min(100%, var(--app-w));
+  height: var(--tabbar-h);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  background: var(--card);
+  border-top: 1px solid var(--line);
+}
+.tabbar button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  position: relative;
+}
+.tabbar svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.tabbar button[aria-selected="true"] {
+  color: var(--accent);
+}
+.tabbar button[aria-selected="true"] svg {
+  stroke-width: 2.6;
+}
+.count {
+  position: absolute;
+  top: 5px;
+  left: calc(50% + 8px);
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 0.7rem;
+  line-height: 18px;
+}
+
+/* ---------- Toast ---------- */
+.toast {
+  position: fixed;
+  z-index: 8;
+  left: 50%;
+  transform: translateX(-50%);
+  top: calc(12px + env(safe-area-inset-top));
+  width: max-content;
+  max-width: calc(min(100vw, var(--app-w)) - 32px);
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+.toast.rankup {
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 1.05rem;
+  padding: 12px 18px;
+}
+
+/* ---------- Log tab ---------- */
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+.list li {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
   gap: 10px;
-  padding: 5px 0;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+.list li strong {
+  display: block;
+}
+.list li small {
+  color: var(--muted);
+}
+.list .empty {
+  color: var(--muted);
+  font-style: italic;
+  padding: 14px 0;
+}
+
+/* ---------- Ranks tab ---------- */
+.rung {
+  display: grid;
+  grid-template-columns: 20px 92px 1fr 72px;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 0;
   font-size: 0.9rem;
 }
 .rung .name {
@@ -269,8 +584,9 @@ input:focus-visible {
   font-variant-numeric: tabular-nums;
   color: var(--muted);
 }
-
-/* ---------- Rank guide ---------- */
+.ladder-cap {
+  margin-bottom: 4px;
+}
 table {
   width: 100%;
   border-collapse: collapse;
@@ -279,7 +595,7 @@ table {
 th,
 td {
   text-align: left;
-  padding: 6px 4px;
+  padding: 8px 4px;
   border-bottom: 1px solid var(--line);
   vertical-align: middle;
 }
@@ -299,14 +615,76 @@ tr.current td {
   gap: 8px;
 }
 
-/* ---------- Phones ---------- */
-@media (max-width: 520px) {
-  .rung {
-    grid-template-columns: 16px 64px 1fr 88px;
+/* ---------- Small / short screens ---------- */
+@media (max-width: 360px) {
+  .entry-nums {
     gap: 6px;
+  }
+  .stepper button {
+    width: 30px;
+  }
+  .rung {
+    grid-template-columns: 18px 70px 1fr 64px;
     font-size: 0.82rem;
   }
-  .hide-sm {
+}
+@media (max-height: 700px) {
+  .hero {
+    padding-top: 0;
+  }
+  .hero-boulder {
+    --hero: 92px;
+    margin-bottom: 6px;
+  }
+  .rankname {
+    font-size: 1.5rem;
+  }
+  .goal {
+    margin-top: 10px;
+    padding: 12px;
+  }
+  .togo {
+    font-size: 1.15rem;
+    margin: 4px 0 8px;
+  }
+  .entry {
+    gap: 6px;
+    padding-top: 10px;
+    padding-bottom: 8px;
+  }
+}
+/* Very short phones (e.g. iPhone SE 1st gen): keep the goal bar above the dock */
+@media (max-height: 600px) {
+  .hero-boulder {
+    --hero: 60px;
+  }
+  .ranktotal,
+  .goal-hint {
     display: none;
+  }
+  .goal {
+    margin-top: 8px;
+    padding: 10px 12px;
+  }
+}
+/* Landscape phones: too short to dock the entry, so it scrolls with the page */
+@media (max-height: 480px) {
+  .entry {
+    position: static;
+    transform: none;
+    width: auto;
+    margin: 0 max(16px, env(safe-area-inset-right)) calc(var(--tabbar-h) + 16px)
+      max(16px, env(safe-area-inset-left));
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: none;
+  }
+  #view-lift {
+    padding-bottom: 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
   }
 }

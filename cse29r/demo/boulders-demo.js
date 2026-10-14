@@ -135,11 +135,40 @@ function nextRank(pebbles) {
   };
 }
 
+/**
+ * The goal counted in your current rank: on Rock, "7.6 / 25 Rocks, 17.4 to go".
+ * `have` is rounded down and `need` is the rest of the target, so they always add
+ * up and you never see "25 / 25" before you've actually ranked up.
+ * Unranked counts in Pebbles. Null at max rank.
+ */
+function goalInRankUnits(pebbles) {
+  const nx = nextRank(pebbles);
+  if (!nx) return null;
+  const unit = RANKS[Math.max(0, rankIndex(pebbles))];
+  const target = nx.target / unit.value; // whole number: next rank's `per`
+  const have = Math.floor((pebbles / unit.value) * 10 + 1e-9) / 10;
+  const need = Math.round((target - have) * 10) / 10;
+  return { unit, have, target, need };
+}
+
+/**
+ * What you lifted, counted in your current rank plus the leftover in lb:
+ * 1,057 lb on Rock -> { unit: Rock, whole: 1, restLb: 57 } ("1 Rock + 57 lb").
+ * Unranked -> whole 0 Pebbles.
+ */
+function liftedInRank(totalLb) {
+  const pebbles = lbToPebbles(totalLb);
+  const unit = RANKS[Math.max(0, rankIndex(pebbles))];
+  const whole = Math.floor(pebbles / unit.value);
+  const restLb = Math.round((totalLb - whole * unit.value * PEBBLE_LB) * 10) / 10;
+  return { unit, whole, restLb: Math.max(0, restLb) };
+}
+
 applyScale(1);
 
 window.__boulders = {
   RANKS, PEBBLE_LB, applyScale, ladderScale, ageCoef, dotsP,
-  lbToPebbles, totalPebbles, rankIndex, breakdown, nextRank, setVolumeLb,
+  lbToPebbles, totalPebbles, rankIndex, breakdown, nextRank, goalInRankUnits, liftedInRank, setVolumeLb,
 };
 
 // =================================== UI =====================================
@@ -150,10 +179,14 @@ const SAMPLE = [
   { name: "Lateral raise", sets: 3, reps: 12, weight: 8, unit: "lb" },
 ];
 const SESSIONS_PER_YEAR = 156; // 3 a week x 52 weeks
+const HERO_SCALE = [0.36, 0.46, 0.58, 0.71, 0.85, 1]; // boulder size per rank
 
 let sets = [];
 let lastRank = -1;
-let ladderChanged = false; // suppress "Ranked up!" when only the ladder changed
+let ladderChanged = false; // no "Ranked up!" when only the ladder changed
+let rankedUpTo = null; // set by render() when a lift moves you up a rank
+let toastTimer = 0;
+let goalUnit = "rank"; // goal card shows "rank" units (e.g. Rocks) or "lb"
 
 // ---------- helpers ----------
 const $ = (id) => document.getElementById(id);
@@ -161,6 +194,8 @@ const checked = (name) => document.querySelector(`input[name=${name}]:checked`).
 const fmt = (n, digits = 0) => n.toLocaleString(undefined, { maximumFractionDigits: digits });
 const plural = (n, word) => `${fmt(n)} ${word}${n === 1 ? "" : "s"}`;
 const lb = (pebbles) => fmt(pebbles * PEBBLE_LB, 1) + " lb";
+// count with one decimal: "1 Rock", "17.4 Rocks"
+const units = (n, word) => `${fmt(n, 1)} ${word}${n === 1 ? "" : "s"}`;
 
 function pct(f) {
   const p = f * 100;
@@ -199,86 +234,161 @@ function progressBar(have, max, label, { thin = false, valueText } = {}) {
   return b;
 }
 
+function toast(text, { rankUp = false } = {}) {
+  const t = $("toast");
+  t.textContent = text;
+  t.classList.toggle("rankup", rankUp);
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => (t.hidden = true), rankUp ? 3200 : 2200);
+}
+
+// ---------- tabs ----------
+function showView(name) {
+  document.body.dataset.view = name;
+  document.querySelectorAll(".tabbar [role=tab]").forEach((tab) => {
+    const on = tab.dataset.view === name;
+    tab.setAttribute("aria-selected", String(on));
+    tab.tabIndex = on ? 0 : -1;
+    $("view-" + tab.dataset.view).hidden = !on;
+  });
+  window.scrollTo(0, 0);
+}
+
 // ---------- render ----------
 function renderSets() {
-  $("sets").replaceChildren(
+  const list = $("sets");
+  const count = $("logcount");
+  count.hidden = sets.length === 0;
+  count.textContent = String(sets.length);
+  if (!sets.length) {
+    list.replaceChildren(el("li", "empty", "No lifts yet. Add one on the Lift tab."));
+    return;
+  }
+  list.replaceChildren(
     ...sets.map((s, i) => {
       const li = el("li");
-      const text =
-        `${s.name || "Set"}: ${s.sets} x ${s.reps} at ${fmt(s.weight, 1)} ${s.unit} = ` +
-        plural(lbToPebbles(setVolumeLb(s)), "Pebble");
-      const remove = el("button", "", "Remove");
+      const info = el("div");
+      info.append(
+        el("strong", "", s.name || "Lift"),
+        el("small", "", `${s.sets} x ${s.reps} at ${fmt(s.weight, 1)} ${s.unit} = ` +
+          plural(lbToPebbles(setVolumeLb(s)), "Pebble")),
+      );
+      const remove = el("button", "btn", "Remove");
       remove.type = "button";
-      remove.setAttribute("aria-label", `Remove ${s.name || "set"} entry ${i + 1}`);
+      remove.setAttribute("aria-label", `Remove ${s.name || "lift"} entry ${i + 1}`);
       remove.onclick = () => {
         sets.splice(i, 1);
         render();
       };
-      li.append(el("span", "", text), remove);
+      li.append(info, remove);
       return li;
     }),
   );
 }
 
-function renderRank(ri, total, parts) {
-  $("rankicon").replaceChildren();
+function renderRank(ri, total) {
+  const icon = $("rankicon");
+  const name = $("rankname");
   if (ri < 0) {
-    $("rankname").textContent = "Unranked";
+    const empty = el("span", "b none");
+    empty.style.setProperty("--f", HERO_SCALE[0]);
+    empty.setAttribute("aria-hidden", "true");
+    icon.replaceChildren(empty);
+    name.textContent = "0 lb";
     $("ranktotal").textContent = "Lift something to earn your first Pebble.";
-    $("holdings").textContent = "";
     return;
   }
-  $("rankicon").appendChild(blob(RANKS[ri], 52));
-  $("rankname").textContent = RANKS[ri].name;
-  $("ranktotal").textContent = `${fmt(total.lb, 1)} lb lifted = ${plural(total.pebbles, "Pebble")}`;
-  const held = RANKS.slice()
-    .reverse()
-    .filter((r) => parts[r.id])
-    .map((r) => plural(parts[r.id], r.name));
-  $("holdings").textContent = `You have ${held.join(" + ")}.`;
+  const hero = blob(RANKS[ri]);
+  hero.style.width = hero.style.height = ""; // sized by CSS via --f
+  hero.style.setProperty("--f", HERO_SCALE[ri]);
+  icon.replaceChildren(hero);
+
+  // "1 Rock + 57 lb" (Pebbles are already lb, so no leftover there)
+  const { unit, whole, restLb } = liftedInRank(total.lb);
+  name.replaceChildren(plural(whole, unit.name));
+  if (unit.value > 1 && restLb > 0) name.append(" ", el("span", "rest", `+ ${fmt(restLb, 1)} lb`));
+  $("ranktotal").textContent = `${fmt(total.lb, 1)} lb total`;
 }
 
-function renderFlash(ri) {
-  const flash = $("flash");
-  if (ladderChanged) {
-    flash.hidden = true;
-    ladderChanged = false;
-  } else if (ri > lastRank && ri >= 1) {
-    flash.textContent = `Ranked up to ${RANKS[ri].name}!`;
-    flash.hidden = false;
-  } else if (ri < lastRank) {
-    flash.hidden = true;
-  }
+function checkRankUp(ri) {
+  rankedUpTo = !ladderChanged && ri > lastRank && ri >= 1 ? RANKS[ri] : null;
+  ladderChanged = false;
   lastRank = ri;
 }
 
-function renderProgress(pebbles) {
-  const prog = $("progress");
-  const nx = nextRank(pebbles);
-  if (!nx) {
-    prog.replaceChildren(el("p", "togo", "Max rank reached. You are a Monolith."));
+/** Show the rank-up message if this change ranked you up, otherwise `text`. */
+function announce(text) {
+  if (rankedUpTo) toast(`Ranked up to ${rankedUpTo.name}!`, { rankUp: true });
+  else if (text) toast(text);
+}
+
+function renderGoal(pebbles) {
+  const goal = $("progress");
+  if (pebbles < 1) {
+    const p = el("p", "goal-empty muted", `Goal: your first Stone (${lb(RANKS[1].value)}). Log a lift below.`);
+    const demo = el("button", "btn", "Try the sample workout");
+    demo.type = "button";
+    demo.onclick = loadSample;
+    const wrap = el("div", "goal-empty");
+    wrap.append(p, demo);
+    goal.replaceChildren(wrap);
     return;
   }
-  const label = el("div", "muted small", "Next rank: ");
-  label.appendChild(el("strong", "", nx.rank.name));
-  const togo = lb(nx.need) + " to go" + (PEBBLE_LB === 1 ? "" : ` (${plural(nx.need, "Pebble")})`);
-  const text = el("div");
-  text.append(label, el("div", "togo", togo));
-  const head = el("div", "nexthead");
-  head.append(blob(nx.rank, 30), text);
+  const nx = nextRank(pebbles);
+  if (!nx) {
+    goal.replaceChildren(el("p", "togo goal-empty", "Max rank reached. You are a Monolith."));
+    return;
+  }
+  const g = goalInRankUnits(pebbles);
+  const inLb = goalUnit === "lb";
+  const unitName = g.unit.name;
+
+  // row 1: next rank + unit switch
+  const label = el("div", "goal-label muted small", "Next goal ");
+  label.append(el("strong", "", nx.rank.name));
+  const top = el("div", "goal-top");
+  top.append(blob(nx.rank, 30), label, unitSwitch(unitName));
+
+  // row 2: how much is left, in the chosen unit
+  const togo = inLb ? `${lb(nx.need)} to go` : `${units(g.need, unitName)} to go`;
+  const hint = inLb || g.unit.value === 1 ? "" : `1 ${unitName} = ${lb(g.unit.value)}`;
 
   const labels = el("div", "barlabels");
   labels.append(
-    el("span", "", `${fmt(nx.have)} / ${fmt(nx.target)} Pebbles`),
+    el("span", "", inLb
+      ? `${lb(nx.have)} / ${lb(nx.target)}`
+      : `${fmt(g.have, 1)} / ${units(g.target, unitName)}`),
     el("span", "", pct(nx.fraction)),
   );
-  prog.replaceChildren(
-    head,
+  goal.replaceChildren(
+    top,
+    el("div", "togo", togo),
     progressBar(nx.have, nx.target, `Progress to ${nx.rank.name}`, {
-      valueText: `${pct(nx.fraction)}, ${fmt(nx.need)} Pebbles to go`,
+      valueText: `${pct(nx.fraction)}, ${togo}`,
     }),
     labels,
   );
+  if (hint) goal.appendChild(el("div", "goal-hint muted small", hint));
+}
+
+/** Two-option switch: [Rocks | lb]. Re-renders the goal card when flipped. */
+function unitSwitch(unitName) {
+  const sw = el("div", "unit-switch");
+  sw.setAttribute("role", "group");
+  sw.setAttribute("aria-label", "Show goal in");
+  for (const [value, text] of [["rank", unitName + "s"], ["lb", "lb"]]) {
+    const b = el("button", "", text);
+    b.type = "button";
+    b.setAttribute("aria-pressed", String(goalUnit === value));
+    b.onclick = () => {
+      goalUnit = value;
+      renderGoal(totalPebbles(sets).pebbles);
+      $("progress").querySelector(`.unit-switch [aria-pressed="true"]`).focus();
+    };
+    sw.appendChild(b);
+  }
+  return sw;
 }
 
 // Each level fills toward one of the next level, like an odometer.
@@ -311,7 +421,7 @@ function renderGuide(ri) {
       tr.append(
         nameCell,
         el("td", "n", i === 0 ? "base unit" : `${fmt(r.per)} ${RANKS[i - 1].name}s`),
-        el("td", "n hide-sm", lb(r.value)),
+        el("td", "n", lb(r.value)),
       );
       return tr;
     }),
@@ -323,9 +433,9 @@ function render() {
   const ri = rankIndex(total.pebbles);
   const parts = breakdown(total.pebbles);
   renderSets();
-  renderRank(ri, total, parts);
-  renderFlash(ri);
-  renderProgress(total.pebbles);
+  renderRank(ri, total);
+  checkRankUp(ri);
+  renderGoal(total.pebbles);
   renderLadder(parts);
   renderGuide(ri);
 }
@@ -371,21 +481,22 @@ function updateLadder() {
   render();
 }
 
-// ---------- events ----------
-$("profile").addEventListener("submit", (e) => e.preventDefault());
-$("age").addEventListener("input", updateLadder);
-$("bw").addEventListener("input", updateLadder);
-document
-  .querySelectorAll("input[name=sex], input[name=bwunit]")
-  .forEach((i) => i.addEventListener("change", updateLadder));
+// ---------- actions ----------
+function loadSample() {
+  sets = SAMPLE.map((s) => ({ ...s }));
+  $("err").textContent = "";
+  render();
+  announce(`Sample workout loaded: ${plural(totalPebbles(sets).pebbles, "Pebble")}`);
+}
 
-$("form").addEventListener("submit", (e) => {
+function addLift(e) {
   e.preventDefault();
   const weight = parseFloat($("weight").value);
   const reps = parseInt($("reps").value, 10);
   const count = parseInt($("setcount").value, 10);
   if (!(weight > 0)) {
-    $("err").textContent = "Enter a weight above 0 (0 lb work is not counted).";
+    $("err").textContent = "Enter a weight above 0.";
+    $("weight").focus();
     return;
   }
   if (!(reps > 0) || !(count > 0)) {
@@ -393,20 +504,63 @@ $("form").addEventListener("submit", (e) => {
     return;
   }
   $("err").textContent = "";
-  sets.push({ name: $("name").value.trim(), reps, sets: count, weight, unit: checked("unit") });
-  $("weight").value = "";
-  $("name").value = "";
-  $("weight").focus();
+  const lift = { name: $("name").value.trim(), reps, sets: count, weight, unit: checked("unit") };
+  sets.push(lift);
+  // keep weight, name, reps and sets filled in so the next set is one tap
   render();
-});
+  announce(`+${plural(lbToPebbles(setVolumeLb(lift)), "Pebble")}${lift.name ? " · " + lift.name : ""}`);
+}
 
+function step(id, dir) {
+  const input = $(id);
+  const v = parseInt(input.value, 10) || 0;
+  input.value = String(Math.max(1, v + dir));
+}
+
+// Keep the Lift view's bottom padding equal to the docked entry's real height.
+function trackEntryHeight() {
+  const entry = $("form");
+  const set = () =>
+    document.documentElement.style.setProperty("--entry-h", entry.offsetHeight + "px");
+  if ("ResizeObserver" in window) new ResizeObserver(set).observe(entry);
+  set();
+}
+
+// ---------- events ----------
+document.querySelectorAll(".tabbar [role=tab]").forEach((tab) => {
+  tab.addEventListener("click", () => showView(tab.dataset.view));
+  // arrow keys move between tabs
+  tab.addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    const tabs = [...document.querySelectorAll(".tabbar [role=tab]")];
+    const next = tabs[(tabs.indexOf(tab) + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length];
+    next.focus();
+    showView(next.dataset.view);
+  });
+});
+document.querySelectorAll("[data-step]").forEach((b) =>
+  b.addEventListener("click", () => step(b.dataset.step, Number(b.dataset.dir))),
+);
+
+$("profile").addEventListener("submit", (e) => e.preventDefault());
+$("age").addEventListener("input", updateLadder);
+$("bw").addEventListener("input", updateLadder);
+document
+  .querySelectorAll("input[name=sex], input[name=bwunit]")
+  .forEach((i) => i.addEventListener("change", updateLadder));
+
+$("form").addEventListener("submit", addLift);
+$("weight").addEventListener("input", () => ($("err").textContent = ""));
 $("sample").onclick = () => {
-  sets = SAMPLE.map((s) => ({ ...s }));
-  render();
+  loadSample();
+  showView("lift");
 };
 $("sampleYear").onclick = () => {
   sets = SAMPLE.map((s) => ({ ...s, name: `${s.name} (year)`, sets: s.sets * SESSIONS_PER_YEAR }));
+  $("err").textContent = "";
   render();
+  showView("lift");
+  announce("A year of training loaded");
 };
 $("clear").onclick = () => {
   sets = [];
@@ -414,4 +568,6 @@ $("clear").onclick = () => {
   render();
 };
 
+showView("lift");
+trackEntryHeight();
 updateLadder();
