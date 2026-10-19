@@ -17,7 +17,16 @@
 		},
 		{
 			"path": "../study-agent-old"
+		},
+		{
+			"path": "../snake"
+		},
+		{
+			"path": "../snake-e2e"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"python.testing.pytestEnabled": true,
+		"python.testing.unittestEnabled": false
+	}
 }
